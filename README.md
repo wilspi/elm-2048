@@ -1,5 +1,12 @@
 # elm-2048
 
+elm --help
+
+elm-format src/Main.elm
+elm make src/Main.elm
+elm reactor
+
+
 ### Development 
 
 * Googling out elm-2048 gave me a few repos. I had trails if I got stuck.

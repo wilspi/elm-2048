@@ -1,6 +1,6 @@
 let
-  # Update nixpkgs from release: https://github.com/NixOS/nixpkgs/releases/tag/19.09
-  nixpkgs = import (builtins.fetchTarball https://github.com/NixOS/nixpkgs/archive/19.09.tar.gz) {
+  # Update nixpkgs from release: https://github.com/NixOS/nixpkgs/releases/tag/20.03-beta
+  nixpkgs = import (builtins.fetchTarball https://github.com/NixOS/nixpkgs/archive/20.03-beta.tar.gz) {
     overlays = [];
     config = {};
   };
