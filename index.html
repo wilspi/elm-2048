@@ -5788,8 +5788,8 @@ var $elm$core$Array$set = F3(
 			A4($elm$core$Array$setHelp, startShift, index, value, tree),
 			tail));
 	});
-var $author$project$Main$addCell = F2(
-	function (_v0, model) {
+var $author$project$Main$addTile = F3(
+	function (_v0, value, model) {
 		var x = _v0.a;
 		var y = _v0.b;
 		var row = function () {
@@ -5808,12 +5808,47 @@ var $author$project$Main$addCell = F2(
 				A3(
 					$elm$core$Array$set,
 					y,
-					$author$project$Main$Tile(2),
+					$author$project$Main$Tile(value),
 					row),
 				model.cells),
 			size: model.size
 		};
 	});
+var $elm$core$Array$fromListHelp = F3(
+	function (list, nodeList, nodeListSize) {
+		fromListHelp:
+		while (true) {
+			var _v0 = A2($elm$core$Elm$JsArray$initializeFromList, $elm$core$Array$branchFactor, list);
+			var jsArray = _v0.a;
+			var remainingItems = _v0.b;
+			if (_Utils_cmp(
+				$elm$core$Elm$JsArray$length(jsArray),
+				$elm$core$Array$branchFactor) < 0) {
+				return A2(
+					$elm$core$Array$builderToArray,
+					true,
+					{nodeList: nodeList, nodeListSize: nodeListSize, tail: jsArray});
+			} else {
+				var $temp$list = remainingItems,
+					$temp$nodeList = A2(
+					$elm$core$List$cons,
+					$elm$core$Array$Leaf(jsArray),
+					nodeList),
+					$temp$nodeListSize = nodeListSize + 1;
+				list = $temp$list;
+				nodeList = $temp$nodeList;
+				nodeListSize = $temp$nodeListSize;
+				continue fromListHelp;
+			}
+		}
+	});
+var $elm$core$Array$fromList = function (list) {
+	if (!list.b) {
+		return $elm$core$Array$empty;
+	} else {
+		return A3($elm$core$Array$fromListHelp, list, _List_Nil, 0);
+	}
+};
 var $elm$random$Random$Generate = function (a) {
 	return {$: 'Generate', a: a};
 };
@@ -5981,7 +6016,7 @@ var $elm$core$Array$indexedMap = F2(
 			A3($elm$core$Elm$JsArray$foldl, helper, initialBuilder, tree));
 	});
 var $author$project$Main$getAvailableCells = function (grid) {
-	var positions = $elm$core$List$concat(
+	var pos = $elm$core$List$concat(
 		$elm$core$Array$toList(
 			A2(
 				$elm$core$Array$indexedMap,
@@ -6003,69 +6038,23 @@ var $author$project$Main$getAvailableCells = function (grid) {
 					}),
 				grid)));
 	return A2(
-		$elm$core$List$filter,
-		function (_v0) {
-			var x = _v0.x;
-			var y = _v0.y;
-			var v = _v0.v;
-			return !v;
+		$elm$core$List$map,
+		function (t) {
+			return _Utils_Tuple2(t.x, t.y);
 		},
-		positions);
-};
-var $elm$core$Array$fromListHelp = F3(
-	function (list, nodeList, nodeListSize) {
-		fromListHelp:
-		while (true) {
-			var _v0 = A2($elm$core$Elm$JsArray$initializeFromList, $elm$core$Array$branchFactor, list);
-			var jsArray = _v0.a;
-			var remainingItems = _v0.b;
-			if (_Utils_cmp(
-				$elm$core$Elm$JsArray$length(jsArray),
-				$elm$core$Array$branchFactor) < 0) {
-				return A2(
-					$elm$core$Array$builderToArray,
-					true,
-					{nodeList: nodeList, nodeListSize: nodeListSize, tail: jsArray});
-			} else {
-				var $temp$list = remainingItems,
-					$temp$nodeList = A2(
-					$elm$core$List$cons,
-					$elm$core$Array$Leaf(jsArray),
-					nodeList),
-					$temp$nodeListSize = nodeListSize + 1;
-				list = $temp$list;
-				nodeList = $temp$nodeList;
-				nodeListSize = $temp$nodeListSize;
-				continue fromListHelp;
-			}
-		}
-	});
-var $elm$core$Array$fromList = function (list) {
-	if (!list.b) {
-		return $elm$core$Array$empty;
-	} else {
-		return A3($elm$core$Array$fromListHelp, list, _List_Nil, 0);
-	}
+		A2(
+			$elm$core$List$filter,
+			function (_v0) {
+				var x = _v0.x;
+				var y = _v0.y;
+				var v = _v0.v;
+				return !v;
+			},
+			pos));
 };
 var $elm$core$Basics$negate = function (n) {
 	return -n;
 };
-var $author$project$Main$getPosition = F2(
-	function (idx, positions) {
-		var position = function () {
-			var _v0 = A2(
-				$elm$core$Array$get,
-				idx,
-				$elm$core$Array$fromList(positions));
-			if (_v0.$ === 'Just') {
-				var t = _v0.a;
-				return t;
-			} else {
-				return {v: -1, x: -1, y: -1};
-			}
-		}();
-		return _Utils_Tuple2(position.x, position.y);
-	});
 var $elm$core$Bitwise$xor = _Bitwise_xor;
 var $elm$random$Random$peel = function (_v0) {
 	var state = _v0.a;
@@ -6106,10 +6095,8 @@ var $elm$random$Random$int = F2(
 	});
 var $author$project$Main$update = F2(
 	function (msg, model) {
-		var dummy = A2($elm$core$Debug$log, 'dump tuple', msg);
+		var dummy = A2($elm$core$Debug$log, 'message: ', msg);
 		switch (msg.$) {
-			case 'Reset':
-				return $author$project$Main$init;
 			case 'Left':
 				return _Utils_Tuple2(
 					model,
@@ -6127,15 +6114,27 @@ var $author$project$Main$update = F2(
 				return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 			case 'Down':
 				return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+			case 'Reset':
+				return $author$project$Main$init;
 			default:
 				var i = msg.a;
 				return _Utils_Tuple2(
-					A2(
-						$author$project$Main$addCell,
-						A2(
-							$author$project$Main$getPosition,
-							i,
-							$author$project$Main$getAvailableCells(model.cells)),
+					A3(
+						$author$project$Main$addTile,
+						function () {
+							var _v1 = A2(
+								$elm$core$Array$get,
+								i,
+								$elm$core$Array$fromList(
+									$author$project$Main$getAvailableCells(model.cells)));
+							if (_v1.$ === 'Just') {
+								var t = _v1.a;
+								return t;
+							} else {
+								return _Utils_Tuple2(-1, -1);
+							}
+						}(),
+						2,
 						model),
 					$elm$core$Platform$Cmd$none);
 		}
@@ -6176,38 +6175,10 @@ var $elm$core$Array$map = F2(
 			A2($elm$core$Elm$JsArray$map, func, tail));
 	});
 var $elm$html$Html$table = _VirtualDom_node('table');
+var $elm$html$Html$td = _VirtualDom_node('td');
 var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
 var $elm$html$Html$tr = _VirtualDom_node('tr');
-var $elm$html$Html$td = _VirtualDom_node('td');
-var $author$project$Main$viewCell = function (cell) {
-	if (cell.$ === 'Tile') {
-		var value = cell.a;
-		return A2(
-			$elm$html$Html$td,
-			_List_Nil,
-			_List_fromArray(
-				[
-					$elm$html$Html$text(
-					$elm$core$String$fromInt(value))
-				]));
-	} else {
-		return A2(
-			$elm$html$Html$td,
-			_List_Nil,
-			_List_fromArray(
-				[
-					$elm$html$Html$text('0')
-				]));
-	}
-};
-var $author$project$Main$viewRow = function (list) {
-	return A2(
-		$elm$html$Html$tr,
-		_List_Nil,
-		$elm$core$Array$toList(
-			A2($elm$core$Array$map, $author$project$Main$viewCell, list)));
-};
 var $author$project$Main$view = function (model) {
 	return A2(
 		$elm$html$Html$div,
@@ -6236,7 +6207,39 @@ var $author$project$Main$view = function (model) {
 						$elm$html$Html$table,
 						_List_Nil,
 						$elm$core$Array$toList(
-							A2($elm$core$Array$map, $author$project$Main$viewRow, model.cells)))
+							A2(
+								$elm$core$Array$map,
+								function (l) {
+									return A2(
+										$elm$html$Html$tr,
+										_List_Nil,
+										$elm$core$Array$toList(
+											A2(
+												$elm$core$Array$map,
+												function (c) {
+													if (c.$ === 'Tile') {
+														var v = c.a;
+														return A2(
+															$elm$html$Html$td,
+															_List_Nil,
+															_List_fromArray(
+																[
+																	$elm$html$Html$text(
+																	$elm$core$String$fromInt(v))
+																]));
+													} else {
+														return A2(
+															$elm$html$Html$td,
+															_List_Nil,
+															_List_fromArray(
+																[
+																	$elm$html$Html$text('0')
+																]));
+													}
+												},
+												l)));
+								},
+								model.cells)))
 					]))
 			]));
 };

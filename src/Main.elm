@@ -14,20 +14,6 @@ import Random
 -- MODEL
 
 
-gridSize : Int
-gridSize =
-    4
-
-
-type Msg
-    = Left
-    | Right
-    | Up
-    | Down
-    | Reset
-    | Add Int
-
-
 type Cell
     = Tile Int
     | EmptyCell
@@ -45,6 +31,11 @@ type alias Model =
 
 
 -- INIT
+
+
+gridSize : Int
+gridSize =
+    4
 
 
 init : ( Model, Cmd Msg )
@@ -91,18 +82,27 @@ view model =
 -- UPDATE
 
 
+type Msg
+    = Left
+    | Right
+    | Up
+    | Down
+    | Reset
+    | Add Int
+
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     let
         dummy =
-            Debug.log "dump tuple" msg
+            Debug.log "message: " msg
     in
     case msg of
-        Reset ->
-            init
-
         Left ->
-            ( model, Random.generate Add (Random.int 1 (List.length (getAvailableCells model.cells) - 1)) )
+            ( model
+              -- Send `Add` msg with a random number between 1 to number of available cells
+            , Random.generate Add (Random.int 1 (List.length (getAvailableCells model.cells) - 1))
+            )
 
         Right ->
             ( model, Cmd.none )
@@ -113,27 +113,37 @@ update msg model =
         Down ->
             ( model, Cmd.none )
 
+        Reset ->
+            init
+
+        -- Adds a tile of `2` in the i-th available cell
         Add i ->
-            ( addCell (getPosition i (getAvailableCells model.cells)) model, Cmd.none )
+            ( addTile
+                (case Array.get i (Array.fromList (getAvailableCells model.cells)) of
+                    Just t ->
+                        t
+
+                    Nothing ->
+                        ( -1, -1 )
+                )
+                2
+                model
+            , Cmd.none
+            )
 
 
 
---leftUpdate : Model -> Model
---leftUpdate model =
---
+-- HELPERS
 
 
 type alias Position =
-    { x : Int
-    , y : Int
-    , v : Int
-    }
+    ( Int, Int )
 
 
 getAvailableCells : Grid -> List Position
 getAvailableCells grid =
     let
-        positions =
+        pos =
             List.concat
                 (Array.toList
                     (Array.indexedMap
@@ -155,25 +165,11 @@ getAvailableCells grid =
                     )
                 )
     in
-    List.filter (\{ x, y, v } -> v == 0) positions
+    List.map (\t -> ( t.x, t.y )) (List.filter (\{ x, y, v } -> v == 0) pos)
 
 
-getPosition : Int -> List Position -> ( Int, Int )
-getPosition idx positions =
-    let
-        position =
-            case Array.get idx (Array.fromList positions) of
-                Just t ->
-                    t
-
-                Nothing ->
-                    { x = -1, y = -1, v = -1 }
-    in
-    ( position.x, position.y )
-
-
-addCell : ( Int, Int ) -> Model -> Model
-addCell ( x, y ) model =
+addTile : Position -> Int -> Model -> Model
+addTile ( x, y ) value model =
     let
         row =
             case Array.get x model.cells of
@@ -184,7 +180,7 @@ addCell ( x, y ) model =
                     Array.repeat model.size EmptyCell
     in
     { size = model.size
-    , cells = Array.set x (Array.set y (Tile 2) row) model.cells
+    , cells = Array.set x (Array.set y (Tile value) row) model.cells
     }
 
 
