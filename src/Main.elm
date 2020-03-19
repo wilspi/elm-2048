@@ -6,7 +6,6 @@ import Browser.Events as BE
 import Debug
 import Html exposing (Html, button, div, table, td, text, tr)
 import Html.Attributes exposing (class)
-import Html.Events exposing (onClick)
 import Json.Decode as Decode
 import Random
 
@@ -54,22 +53,7 @@ init =
 
 
 
--- VIEWS
-
-
-viewRow : Array Cell -> Html Msg
-viewRow list =
-    tr [] (Array.toList (Array.map viewCell list))
-
-
-viewCell : Cell -> Html Msg
-viewCell cell =
-    case cell of
-        Tile value ->
-            td [] [ text (String.fromInt value) ]
-
-        EmptyCell ->
-            td [] [ text "0" ]
+-- VIEW
 
 
 view : Model -> Html Msg
@@ -79,7 +63,25 @@ view model =
         , div [ class "grid-2048" ]
             [ table []
                 (Array.toList
-                    (Array.map viewRow model.cells)
+                    (Array.map
+                        (\l ->
+                            tr []
+                                (Array.toList
+                                    (Array.map
+                                        (\c ->
+                                            case c of
+                                                Tile v ->
+                                                    td [] [ text (String.fromInt v) ]
+
+                                                EmptyCell ->
+                                                    td [] [ text "0" ]
+                                        )
+                                        l
+                                    )
+                                )
+                        )
+                        model.cells
+                    )
                 )
             ]
         ]
@@ -113,6 +115,12 @@ update msg model =
 
         Add i ->
             ( addCell (getPosition i (getAvailableCells model.cells)) model, Cmd.none )
+
+
+
+--leftUpdate : Model -> Model
+--leftUpdate model =
+--
 
 
 type alias Position =
@@ -164,23 +172,6 @@ getPosition idx positions =
     ( position.x, position.y )
 
 
-
---
---getRandomAvailableCell : Grid -> Position
---getRandomAvailableCell grid =
---    let
---        availablePositions =
---            getAvailableCells grid
---
---        dummy =
---            Debug.log "tiles" availablePositions
---    in
---    Array.get (Random.int 0 (List.length availablePositions - 1)) (Array.fromList availablePositions)
---roll : Random.Generator Int
---roll =
---  Random.int 0
-
-
 addCell : ( Int, Int ) -> Model -> Model
 addCell ( x, y ) model =
     let
@@ -195,36 +186,6 @@ addCell ( x, y ) model =
     { size = model.size
     , cells = Array.set x (Array.set y (Tile 2) row) model.cells
     }
-
-
-
---addRandomCell : Model -> Model
---addRandomCell model =
---    let
---        randomPosition =
---            getRandomAvailableCell model.cells
---
---        row =
---            case Array.get randomPosition.x model.cells of
---                Just x ->
---                    x
---
---                Nothing ->
---                    Array.repeat model.size EmptyCell
---    in
---    { size = model.size
---    , cells = Array.set randomPosition.x (Array.set randomPosition.y (Tile 2) row) model.cells
---    }
---List.concat (Array.toList (Array.indexedMap (\i, x -> List.filter (\g -> g == EmptyCell) (Array.toList x)) grid))
---List.concat (Array.toList (Array.indexedMap (\i, x -> Array.foldl (\g -> if g == EmptyCell then ()) [] x) grid))
---
---m : Model -> Model
---m model =
---    let
---        g =
---            getAvailableCells model.cells
---    in
---    model
 
 
 swap : Cell -> Cell -> ( Cell, Cell )

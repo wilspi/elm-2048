@@ -20,6 +20,7 @@ in
       zsh
       wget
       locale
+      which
       vim
       less
       htop
