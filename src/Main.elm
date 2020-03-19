@@ -40,7 +40,7 @@ gridSize =
 
 init : ( Model, Cmd Msg )
 init =
-    ( { size = gridSize, cells = Array.repeat gridSize (Array.repeat gridSize EmptyCell) }, Cmd.none )
+    ( { size = gridSize, cells = EmptyCell |> Array.repeat gridSize |> Array.repeat gridSize }, Cmd.none )
 
 
 
@@ -53,12 +53,12 @@ view model =
         [ div [] [ text "2048" ]
         , div [ class "grid-2048" ]
             [ table []
-                (Array.toList
-                    (Array.map
+                (model.cells
+                    |> Array.map
                         (\l ->
                             tr []
-                                (Array.toList
-                                    (Array.map
+                                (l
+                                    |> Array.map
                                         (\c ->
                                             case c of
                                                 Tile v ->
@@ -67,12 +67,10 @@ view model =
                                                 EmptyCell ->
                                                     td [] [ text "0" ]
                                         )
-                                        l
-                                    )
+                                    |> Array.toList
                                 )
                         )
-                        model.cells
-                    )
+                    |> Array.toList
                 )
             ]
         ]
@@ -100,8 +98,8 @@ update msg model =
     case msg of
         Left ->
             ( model
-              -- Send `Add` msg with a random number between 1 to number of available cells
-            , Random.generate Add (Random.int 1 (List.length (getAvailableCells model.cells) - 1))
+              -- Sends `Add` msg with a random number between 1 to number of available cells
+            , Random.generate Add (Random.int 1 (List.length (model.cells |> getAvailableCells) - 1))
             )
 
         Right ->
@@ -119,10 +117,11 @@ update msg model =
         -- Adds a tile of `2` in the i-th available cell
         Add i ->
             ( addTile
-                (case Array.get i (Array.fromList (getAvailableCells model.cells)) of
+                (case model.cells |> getAvailableCells |> Array.fromList |> Array.get i of
                     Just t ->
                         t
 
+                    -- Array.set handles out of range
                     Nothing ->
                         ( -1, -1 )
                 )
@@ -145,11 +144,11 @@ getAvailableCells grid =
     let
         pos =
             List.concat
-                (Array.toList
-                    (Array.indexedMap
+                (grid
+                    |> Array.indexedMap
                         (\i x ->
-                            Array.toList
-                                (Array.indexedMap
+                            x
+                                |> Array.indexedMap
                                     (\j y ->
                                         case y of
                                             Tile t ->
@@ -158,11 +157,9 @@ getAvailableCells grid =
                                             EmptyCell ->
                                                 { x = i, y = j, v = 0 }
                                     )
-                                    x
-                                )
+                                |> Array.toList
                         )
-                        grid
-                    )
+                    |> Array.toList
                 )
     in
     List.map (\t -> ( t.x, t.y )) (List.filter (\{ x, y, v } -> v == 0) pos)
