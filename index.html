@@ -6092,13 +6092,146 @@ var $elm$random$Random$int = F2(
 				}
 			});
 	});
+var $elm$core$Elm$JsArray$map = _JsArray_map;
+var $elm$core$Array$map = F2(
+	function (func, _v0) {
+		var len = _v0.a;
+		var startShift = _v0.b;
+		var tree = _v0.c;
+		var tail = _v0.d;
+		var helper = function (node) {
+			if (node.$ === 'SubTree') {
+				var subTree = node.a;
+				return $elm$core$Array$SubTree(
+					A2($elm$core$Elm$JsArray$map, helper, subTree));
+			} else {
+				var values = node.a;
+				return $elm$core$Array$Leaf(
+					A2($elm$core$Elm$JsArray$map, func, values));
+			}
+		};
+		return A4(
+			$elm$core$Array$Array_elm_builtin,
+			len,
+			startShift,
+			A2($elm$core$Elm$JsArray$map, helper, tree),
+			A2($elm$core$Elm$JsArray$map, func, tail));
+	});
+var $author$project$Main$swap = function (_v0) {
+	var cell1 = _v0.a;
+	var cell2 = _v0.b;
+	return _Utils_Tuple2(cell2, cell1);
+};
+var $author$project$Main$mergeCell = function (_v0) {
+	mergeCell:
+	while (true) {
+		var cell1 = _v0.a;
+		var cell2 = _v0.b;
+		var _v1 = _Utils_Tuple2(cell1, cell2);
+		if (_v1.a.$ === 'Tile') {
+			if (_v1.b.$ === 'Tile') {
+				var val1 = _v1.a.a;
+				var val2 = _v1.b.a;
+				return $author$project$Main$Tile(val1 + val2);
+			} else {
+				var val1 = _v1.a.a;
+				var _v2 = _v1.b;
+				return $author$project$Main$Tile(val1);
+			}
+		} else {
+			var $temp$_v0 = $author$project$Main$swap(
+				_Utils_Tuple2(cell1, cell2));
+			_v0 = $temp$_v0;
+			continue mergeCell;
+		}
+	}
+};
+var $author$project$Main$mergeRow = function (list) {
+	mergeRow:
+	while (true) {
+		if (!list.b) {
+			return _List_Nil;
+		} else {
+			var x1 = list.a;
+			var xs = list.b;
+			if (_Utils_eq(x1, $author$project$Main$EmptyCell)) {
+				var $temp$list = xs;
+				list = $temp$list;
+				continue mergeRow;
+			} else {
+				if (!xs.b) {
+					return _List_fromArray(
+						[x1]);
+				} else {
+					var x2 = xs.a;
+					var xs2 = xs.b;
+					return _Utils_eq(x1, x2) ? A2(
+						$elm$core$List$cons,
+						$author$project$Main$mergeCell(
+							_Utils_Tuple2(x1, x2)),
+						$author$project$Main$mergeRow(xs2)) : A2(
+						$elm$core$List$cons,
+						x1,
+						$author$project$Main$mergeRow(
+							A2($elm$core$List$cons, x2, xs2)));
+				}
+			}
+		}
+	}
+};
+var $elm$core$List$repeatHelp = F3(
+	function (result, n, value) {
+		repeatHelp:
+		while (true) {
+			if (n <= 0) {
+				return result;
+			} else {
+				var $temp$result = A2($elm$core$List$cons, value, result),
+					$temp$n = n - 1,
+					$temp$value = value;
+				result = $temp$result;
+				n = $temp$n;
+				value = $temp$value;
+				continue repeatHelp;
+			}
+		}
+	});
+var $elm$core$List$repeat = F2(
+	function (n, value) {
+		return A3($elm$core$List$repeatHelp, _List_Nil, n, value);
+	});
+var $author$project$Main$mergeRows = function (list) {
+	var updatedRow = $author$project$Main$mergeRow(list);
+	return $elm$core$List$concat(
+		A2(
+			$elm$core$List$cons,
+			updatedRow,
+			_List_fromArray(
+				[
+					A2(
+					$elm$core$List$repeat,
+					$author$project$Main$gridSize - $elm$core$List$length(updatedRow),
+					$author$project$Main$EmptyCell)
+				])));
+};
 var $author$project$Main$update = F2(
 	function (msg, model) {
 		var dummy = A2($elm$core$Debug$log, 'message: ', msg);
 		switch (msg.$) {
 			case 'Left':
 				return _Utils_Tuple2(
-					model,
+					_Utils_update(
+						model,
+						{
+							cells: A2(
+								$elm$core$Array$map,
+								function (x) {
+									return $elm$core$Array$fromList(
+										$author$project$Main$mergeRows(
+											$elm$core$Array$toList(x)));
+								},
+								model.cells)
+						}),
 					A2(
 						$elm$random$Random$generate,
 						$author$project$Main$Add,
@@ -6148,31 +6281,6 @@ var $elm$html$Html$Attributes$stringProperty = F2(
 	});
 var $elm$html$Html$Attributes$class = $elm$html$Html$Attributes$stringProperty('className');
 var $elm$html$Html$div = _VirtualDom_node('div');
-var $elm$core$Elm$JsArray$map = _JsArray_map;
-var $elm$core$Array$map = F2(
-	function (func, _v0) {
-		var len = _v0.a;
-		var startShift = _v0.b;
-		var tree = _v0.c;
-		var tail = _v0.d;
-		var helper = function (node) {
-			if (node.$ === 'SubTree') {
-				var subTree = node.a;
-				return $elm$core$Array$SubTree(
-					A2($elm$core$Elm$JsArray$map, helper, subTree));
-			} else {
-				var values = node.a;
-				return $elm$core$Array$Leaf(
-					A2($elm$core$Elm$JsArray$map, func, values));
-			}
-		};
-		return A4(
-			$elm$core$Array$Array_elm_builtin,
-			len,
-			startShift,
-			A2($elm$core$Elm$JsArray$map, helper, tree),
-			A2($elm$core$Elm$JsArray$map, func, tail));
-	});
 var $elm$html$Html$table = _VirtualDom_node('table');
 var $elm$html$Html$td = _VirtualDom_node('td');
 var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;

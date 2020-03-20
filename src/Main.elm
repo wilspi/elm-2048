@@ -97,7 +97,7 @@ update msg model =
     in
     case msg of
         Left ->
-            ( model
+            ( { model | cells = Array.map (\x -> Array.fromList (mergeRows (Array.toList x))) model.cells }
               -- Sends `Add` msg with a random number between 1 to number of available cells
             , Random.generate Add (Random.int 1 (List.length (model.cells |> getAvailableCells) - 1))
             )
@@ -129,6 +129,38 @@ update msg model =
                 model
             , Cmd.none
             )
+
+
+mergeRows : List Cell -> List Cell
+mergeRows list =
+    let
+        updatedRow =
+            mergeRow list
+    in
+    List.concat (updatedRow :: [ List.repeat (gridSize - List.length updatedRow) EmptyCell ])
+
+
+mergeRow : List Cell -> List Cell
+mergeRow list =
+    case list of
+        [] ->
+            []
+
+        x1 :: xs ->
+            if x1 == EmptyCell then
+                mergeRow xs
+
+            else
+                case xs of
+                    [] ->
+                        [ x1 ]
+
+                    x2 :: xs2 ->
+                        if x1 == x2 then
+                            mergeCell ( x1, x2 ) :: mergeRow xs2
+
+                        else
+                            x1 :: mergeRow (x2 :: xs2)
 
 
 
@@ -182,22 +214,22 @@ addTile ( x, y ) value model =
     }
 
 
-swap : Cell -> Cell -> ( Cell, Cell )
-swap cell1 cell2 =
+swap : ( Cell, Cell ) -> ( Cell, Cell )
+swap ( cell1, cell2 ) =
     ( cell2, cell1 )
 
 
-merge : Cell -> Cell -> ( Cell, Cell )
-merge cell1 cell2 =
+mergeCell : ( Cell, Cell ) -> Cell
+mergeCell ( cell1, cell2 ) =
     case ( cell1, cell2 ) of
         ( Tile val1, Tile val2 ) ->
-            ( Tile (val1 + val2), EmptyCell )
+            Tile (val1 + val2)
 
         ( Tile val1, EmptyCell ) ->
-            ( Tile val1, EmptyCell )
+            Tile val1
 
         _ ->
-            swap cell1 cell2
+            mergeCell (swap ( cell1, cell2 ))
 
 
 
