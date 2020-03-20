@@ -1,6 +1,6 @@
 # elm-2048
 
-###[Play it here](http://wilspi.github.io/elm-2048/)  
+### [Play it here](http://wilspi.github.io/elm-2048/)  
 
 
 This is an implementation of [2048](http://gabrielecirulli.github.io/2048/) game in Elm
