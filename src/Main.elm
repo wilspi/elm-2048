@@ -40,7 +40,14 @@ gridSize =
 
 init : ( Model, Cmd Msg )
 init =
-    ( { size = gridSize, cells = EmptyCell |> Array.repeat gridSize |> Array.repeat gridSize }, Cmd.none )
+    ( { size = gridSize
+      , cells =
+            EmptyCell
+                |> Array.repeat gridSize
+                |> Array.repeat gridSize
+      }
+    , Cmd.none
+    )
 
 
 
@@ -50,7 +57,7 @@ init =
 view : Model -> Html Msg
 view model =
     div [ class "outer-2048" ]
-        [ div [] [ text "2048" ]
+        [ div [] [ text "2048", text "Use 'w', 'a', 's', 'd' to play" ]
         , div [ class "grid-2048" ]
             [ table []
                 (model.cells
@@ -97,13 +104,53 @@ update msg model =
     in
     case msg of
         Left ->
-            ( { model | cells = Array.map (\x -> Array.fromList (mergeRows (Array.toList x))) model.cells }
+            ( { model
+                | cells =
+                    model.cells
+                        |> Array.map
+                            (\x ->
+                                x
+                                    |> Array.toList
+                                    |> mergeAndFillRow
+                                    |> Array.fromList
+                            )
+              }
               -- Sends `Add` msg with a random number between 1 to number of available cells
-            , Random.generate Add (Random.int 1 (List.length (model.cells |> getAvailableCells) - 1))
+            , Random.generate Add
+                (Random.int 1
+                    ((model.cells
+                        |> getAvailableCells
+                        |> List.length
+                     )
+                        - 1
+                    )
+                )
             )
 
         Right ->
-            ( model, Cmd.none )
+            ( { model
+                | cells =
+                    model.cells
+                        |> Array.map
+                            (\x ->
+                                x
+                                    |> Array.toList
+                                    |> List.reverse
+                                    |> mergeAndFillRow
+                                    |> List.reverse
+                                    |> Array.fromList
+                            )
+              }
+            , Random.generate Add
+                (Random.int 1
+                    ((model.cells
+                        |> getAvailableCells
+                        |> List.length
+                     )
+                        - 1
+                    )
+                )
+            )
 
         Up ->
             ( model, Cmd.none )
@@ -117,7 +164,12 @@ update msg model =
         -- Adds a tile of `2` in the i-th available cell
         Add i ->
             ( addTile
-                (case model.cells |> getAvailableCells |> Array.fromList |> Array.get i of
+                (case
+                    model.cells
+                        |> getAvailableCells
+                        |> Array.fromList
+                        |> Array.get i
+                 of
                     Just t ->
                         t
 
@@ -131,13 +183,21 @@ update msg model =
             )
 
 
-mergeRows : List Cell -> List Cell
-mergeRows list =
+mergeAndFillRow : List Cell -> List Cell
+mergeAndFillRow list =
     let
         updatedRow =
             mergeRow list
     in
-    List.concat (updatedRow :: [ List.repeat (gridSize - List.length updatedRow) EmptyCell ])
+    List.concat
+        (updatedRow
+            :: [ EmptyCell
+                    |> List.repeat
+                        (gridSize
+                            - List.length updatedRow
+                        )
+               ]
+        )
 
 
 mergeRow : List Cell -> List Cell

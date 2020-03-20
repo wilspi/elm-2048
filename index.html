@@ -6200,7 +6200,7 @@ var $elm$core$List$repeat = F2(
 	function (n, value) {
 		return A3($elm$core$List$repeatHelp, _List_Nil, n, value);
 	});
-var $author$project$Main$mergeRows = function (list) {
+var $author$project$Main$mergeAndFillRow = function (list) {
 	var updatedRow = $author$project$Main$mergeRow(list);
 	return $elm$core$List$concat(
 		A2(
@@ -6227,7 +6227,7 @@ var $author$project$Main$update = F2(
 								$elm$core$Array$map,
 								function (x) {
 									return $elm$core$Array$fromList(
-										$author$project$Main$mergeRows(
+										$author$project$Main$mergeAndFillRow(
 											$elm$core$Array$toList(x)));
 								},
 								model.cells)
@@ -6241,7 +6241,29 @@ var $author$project$Main$update = F2(
 							$elm$core$List$length(
 								$author$project$Main$getAvailableCells(model.cells)) - 1)));
 			case 'Right':
-				return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							cells: A2(
+								$elm$core$Array$map,
+								function (x) {
+									return $elm$core$Array$fromList(
+										$elm$core$List$reverse(
+											$author$project$Main$mergeAndFillRow(
+												$elm$core$List$reverse(
+													$elm$core$Array$toList(x)))));
+								},
+								model.cells)
+						}),
+					A2(
+						$elm$random$Random$generate,
+						$author$project$Main$Add,
+						A2(
+							$elm$random$Random$int,
+							1,
+							$elm$core$List$length(
+								$author$project$Main$getAvailableCells(model.cells)) - 1)));
 			case 'Up':
 				return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 			case 'Down':
@@ -6300,7 +6322,8 @@ var $author$project$Main$view = function (model) {
 				_List_Nil,
 				_List_fromArray(
 					[
-						$elm$html$Html$text('2048')
+						$elm$html$Html$text('2048'),
+						$elm$html$Html$text('Use \'w\', \'a\', \'s\', \'d\' to play')
 					])),
 				A2(
 				$elm$html$Html$div,
