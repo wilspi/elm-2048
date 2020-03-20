@@ -4,7 +4,7 @@ import Array exposing (Array)
 import Browser
 import Browser.Events as BE
 import Debug
-import Html exposing (Html, button, div, table, td, text, tr)
+import Html exposing (Html, div, table, td, text, tr)
 import Html.Attributes exposing (class)
 import Json.Decode as Decode
 import Random
@@ -141,43 +141,44 @@ type alias Position =
 
 getAvailableCells : Grid -> List Position
 getAvailableCells grid =
-    let
-        pos =
-            List.concat
-                (grid
-                    |> Array.indexedMap
-                        (\i x ->
-                            x
-                                |> Array.indexedMap
-                                    (\j y ->
-                                        case y of
-                                            Tile t ->
-                                                { x = i, y = j, v = t }
+    List.concat
+        (grid
+            |> Array.indexedMap
+                (\i x ->
+                    x
+                        |> Array.indexedMap
+                            (\j y ->
+                                case y of
+                                    Tile t ->
+                                        { x = i, y = j, v = t }
 
-                                            EmptyCell ->
-                                                { x = i, y = j, v = 0 }
-                                    )
-                                |> Array.toList
-                        )
-                    |> Array.toList
+                                    EmptyCell ->
+                                        { x = i, y = j, v = 0 }
+                            )
+                        |> Array.toList
                 )
-    in
-    List.map (\t -> ( t.x, t.y )) (List.filter (\{ x, y, v } -> v == 0) pos)
+            |> Array.toList
+        )
+        |> List.filter (\{ x, y, v } -> v == 0)
+        |> List.map (\t -> ( t.x, t.y ))
 
 
 addTile : Position -> Int -> Model -> Model
 addTile ( x, y ) value model =
-    let
-        row =
-            case Array.get x model.cells of
-                Just r ->
-                    r
+    { model
+        | cells =
+            Array.set x
+                (Array.set y
+                    (Tile value)
+                    (case Array.get x model.cells of
+                        Just r ->
+                            r
 
-                Nothing ->
-                    Array.repeat model.size EmptyCell
-    in
-    { size = model.size
-    , cells = Array.set x (Array.set y (Tile value) row) model.cells
+                        Nothing ->
+                            Array.repeat model.size EmptyCell
+                    )
+                )
+                model.cells
     }
 
 
@@ -214,7 +215,7 @@ toDirection : String -> Msg
 toDirection string =
     let
         dummy =
-            Debug.log "key tuple" string
+            Debug.log "input key: " string
     in
     case string of
         "a" ->

@@ -1,21 +1,36 @@
 # elm-2048
 
-elm --help
-
-elm-format src/Main.elm
-elm make src/Main.elm
-elm reactor
+###[Play it here](http://wilspi.github.io/elm-2048/)  
 
 
-### Development 
+This is an implementation of [2048](http://gabrielecirulli.github.io/2048/) game in Elm
 
-* Googling out elm-2048 gave me a few repos. I had trails if I got stuck.
-* I opened original [2048 source code](), tried to deconstruct the model, view and update part (as in elm architecture):
- 
+
+### Development
+* Install `nix`  
+  Follow steps [here](https://gist.github.com/wilspi/aad81f832d030d80fca91dfa264a1f8a), if not done already
+* Run `nix` env:
+  ```
+  nix-shell --pure shell.nix
+  ```
+* Development:
+  ```
+  elm --help
+  elm-format src/Main.elm --yes
+  elm make src/Main.elm
+  elm reactor
+  ```
+
+
+### Outline/Scribbles
+
+**Starting Point**: Read [this](https://github.com/gabrielecirulli/2048/blob/master/js/grid.js) and start deconstructing the model, view and update part (as in elm architecture)  
+**Scribble**:  
+```
 Action c, x,y
  switch
   swap: 
-  # left: swap c[x][y], c[x][y+1]
+  -- left: swap c[x][y], c[x][y+1]
   
   merge: c[x1][y1].update(c[x1][y1].value + c[x2][y2].value)
          c[x2][y2].update(0)
@@ -71,6 +86,7 @@ action:
  right:
  up:
  down:
+```
  
 
  

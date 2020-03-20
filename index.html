@@ -5675,7 +5675,7 @@ var $author$project$Main$Right = {$: 'Right'};
 var $author$project$Main$Up = {$: 'Up'};
 var $elm$core$Debug$log = _Debug_log;
 var $author$project$Main$toDirection = function (string) {
-	var dummy = A2($elm$core$Debug$log, 'key tuple', string);
+	var dummy = A2($elm$core$Debug$log, 'input key: ', string);
 	switch (string) {
 		case 'a':
 			return $author$project$Main$Left;
@@ -5792,27 +5792,27 @@ var $author$project$Main$addTile = F3(
 	function (_v0, value, model) {
 		var x = _v0.a;
 		var y = _v0.b;
-		var row = function () {
-			var _v1 = A2($elm$core$Array$get, x, model.cells);
-			if (_v1.$ === 'Just') {
-				var r = _v1.a;
-				return r;
-			} else {
-				return A2($elm$core$Array$repeat, model.size, $author$project$Main$EmptyCell);
-			}
-		}();
-		return {
-			cells: A3(
-				$elm$core$Array$set,
-				x,
-				A3(
+		return _Utils_update(
+			model,
+			{
+				cells: A3(
 					$elm$core$Array$set,
-					y,
-					$author$project$Main$Tile(value),
-					row),
-				model.cells),
-			size: model.size
-		};
+					x,
+					A3(
+						$elm$core$Array$set,
+						y,
+						$author$project$Main$Tile(value),
+						function () {
+							var _v1 = A2($elm$core$Array$get, x, model.cells);
+							if (_v1.$ === 'Just') {
+								var r = _v1.a;
+								return r;
+							} else {
+								return A2($elm$core$Array$repeat, model.size, $author$project$Main$EmptyCell);
+							}
+						}()),
+					model.cells)
+			});
 	});
 var $elm$core$Array$fromListHelp = F3(
 	function (list, nodeList, nodeListSize) {
@@ -6016,27 +6016,6 @@ var $elm$core$Array$indexedMap = F2(
 			A3($elm$core$Elm$JsArray$foldl, helper, initialBuilder, tree));
 	});
 var $author$project$Main$getAvailableCells = function (grid) {
-	var pos = $elm$core$List$concat(
-		$elm$core$Array$toList(
-			A2(
-				$elm$core$Array$indexedMap,
-				F2(
-					function (i, x) {
-						return $elm$core$Array$toList(
-							A2(
-								$elm$core$Array$indexedMap,
-								F2(
-									function (j, y) {
-										if (y.$ === 'Tile') {
-											var t = y.a;
-											return {v: t, x: i, y: j};
-										} else {
-											return {v: 0, x: i, y: j};
-										}
-									}),
-								x));
-					}),
-				grid)));
 	return A2(
 		$elm$core$List$map,
 		function (t) {
@@ -6044,13 +6023,33 @@ var $author$project$Main$getAvailableCells = function (grid) {
 		},
 		A2(
 			$elm$core$List$filter,
-			function (_v0) {
-				var x = _v0.x;
-				var y = _v0.y;
-				var v = _v0.v;
+			function (_v1) {
+				var x = _v1.x;
+				var y = _v1.y;
+				var v = _v1.v;
 				return !v;
 			},
-			pos));
+			$elm$core$List$concat(
+				$elm$core$Array$toList(
+					A2(
+						$elm$core$Array$indexedMap,
+						F2(
+							function (i, x) {
+								return $elm$core$Array$toList(
+									A2(
+										$elm$core$Array$indexedMap,
+										F2(
+											function (j, y) {
+												if (y.$ === 'Tile') {
+													var t = y.a;
+													return {v: t, x: i, y: j};
+												} else {
+													return {v: 0, x: i, y: j};
+												}
+											}),
+										x));
+							}),
+						grid)))));
 };
 var $elm$core$Basics$negate = function (n) {
 	return -n;
