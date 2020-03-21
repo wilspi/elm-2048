@@ -25,7 +25,7 @@ type alias Grid =
 
 type alias Model =
     { size : Int
-    , cells : Grid
+    , grid : Grid
     }
 
 
@@ -41,7 +41,7 @@ gridSize =
 init : ( Model, Cmd Msg )
 init =
     ( { size = gridSize
-      , cells =
+      , grid =
             EmptyCell
                 |> Array.repeat gridSize
                 |> Array.repeat gridSize
@@ -60,7 +60,7 @@ view model =
         [ div [] [ text "2048", text "Use 'w', 'a', 's', 'd' to play" ]
         , div [ class "grid-2048" ]
             [ table []
-                (model.cells
+                (model.grid
                     |> Array.map
                         (\l ->
                             tr []
@@ -96,6 +96,23 @@ type Msg
     | Add Int
 
 
+
+-- Returns `Add` msg with a random number between 1 to number of available cells
+
+
+randomPickCell : Model -> Cmd Msg
+randomPickCell model =
+    Random.generate Add
+        (Random.int 1
+            ((model.grid
+                |> getAvailableCells
+                |> List.length
+             )
+                - 1
+            )
+        )
+
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     let
@@ -105,8 +122,8 @@ update msg model =
     case msg of
         Left ->
             ( { model
-                | cells =
-                    model.cells
+                | grid =
+                    model.grid
                         |> Array.map
                             (\x ->
                                 x
@@ -115,22 +132,13 @@ update msg model =
                                     |> Array.fromList
                             )
               }
-              -- Sends `Add` msg with a random number between 1 to number of available cells
-            , Random.generate Add
-                (Random.int 1
-                    ((model.cells
-                        |> getAvailableCells
-                        |> List.length
-                     )
-                        - 1
-                    )
-                )
+            , randomPickCell model
             )
 
         Right ->
             ( { model
-                | cells =
-                    model.cells
+                | grid =
+                    model.grid
                         |> Array.map
                             (\x ->
                                 x
@@ -141,21 +149,13 @@ update msg model =
                                     |> Array.fromList
                             )
               }
-            , Random.generate Add
-                (Random.int 1
-                    ((model.cells
-                        |> getAvailableCells
-                        |> List.length
-                     )
-                        - 1
-                    )
-                )
+            , randomPickCell model
             )
 
         Up ->
             ( { model
-                | cells =
-                    model.cells
+                | grid =
+                    model.grid
                         |> transposeMap
                             (EmptyCell
                                 |> Array.repeat 0
@@ -174,21 +174,13 @@ update msg model =
                                 |> Array.repeat 0
                             )
               }
-            , Random.generate Add
-                (Random.int 1
-                    ((model.cells
-                        |> getAvailableCells
-                        |> List.length
-                     )
-                        - 1
-                    )
-                )
+            , randomPickCell model
             )
 
         Down ->
             ( { model
-                | cells =
-                    model.cells
+                | grid =
+                    model.grid
                         |> transposeMap
                             (EmptyCell
                                 |> Array.repeat 0
@@ -209,15 +201,7 @@ update msg model =
                                 |> Array.repeat 0
                             )
               }
-            , Random.generate Add
-                (Random.int 1
-                    ((model.cells
-                        |> getAvailableCells
-                        |> List.length
-                     )
-                        - 1
-                    )
-                )
+            , randomPickCell model
             )
 
         Reset ->
@@ -227,7 +211,7 @@ update msg model =
         Add i ->
             ( addTile
                 (case
-                    model.cells
+                    model.grid
                         |> getAvailableCells
                         |> Array.fromList
                         |> Array.get i
@@ -249,17 +233,17 @@ transposeMap : Grid -> Grid -> Grid
 transposeMap grid2 grid1 =
     case Array.get 0 grid1 of
         Just e ->
-            transposeMap (func 0 e grid2) (Array.slice 1 (Array.length grid1) grid1)
+            transposeMap (updateForTranspose 0 e grid2) (Array.slice 1 (Array.length grid1) grid1)
 
         Nothing ->
             grid2
 
 
-func : Int -> Array Cell -> Grid -> Grid
-func idx list grid2 =
+updateForTranspose : Int -> Array Cell -> Grid -> Grid
+updateForTranspose idx list grid2 =
     case Array.get 0 list of
         Just e ->
-            func (idx + 1)
+            updateForTranspose (idx + 1)
                 (Array.slice 1 (Array.length list) list)
                 (case Array.get idx grid2 of
                     Just l ->
@@ -348,8 +332,8 @@ getAvailableCells grid =
 addTile : Position -> Int -> Model -> Model
 addTile ( x, y ) value model =
     { model
-        | cells =
-            model.cells
+        | grid =
+            model.grid
                 |> Array.set x
                     (Array.set y
                         (case value > 0 of
@@ -359,7 +343,7 @@ addTile ( x, y ) value model =
                             _ ->
                                 EmptyCell
                         )
-                        (case Array.get x model.cells of
+                        (case Array.get x model.grid of
                             Just r ->
                                 r
 
