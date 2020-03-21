@@ -5506,7 +5506,8 @@ var $author$project$Main$init = _Utils_Tuple2(
 			$elm$core$Array$repeat,
 			$author$project$Main$gridSize,
 			A2($elm$core$Array$repeat, $author$project$Main$gridSize, $author$project$Main$EmptyCell)),
-		size: $author$project$Main$gridSize
+		size: $author$project$Main$gridSize,
+		swipeCoordinate: _Utils_Tuple2($elm$core$Maybe$Nothing, $elm$core$Maybe$Nothing)
 	},
 	$author$project$Main$randomPickCell(
 		A2(
@@ -5949,6 +5950,9 @@ var $author$project$Main$subscriptions = function (model) {
 				$elm$browser$Browser$Events$onKeyPress(
 				A2($elm$json$Json$Decode$map, $author$project$Main$toDirection, $author$project$Main$keyDecoder))
 			]));
+};
+var $elm$core$Basics$abs = function (n) {
+	return (n < 0) ? (-n) : n;
 };
 var $author$project$Main$Tile = function (a) {
 	return {$: 'Tile', a: a};
@@ -6590,6 +6594,30 @@ var $author$project$Main$transposeMap = F2(
 			}
 		}
 	});
+var $author$project$Main$identifySwipeDirectionAndUpdate = F2(
+	function (_v4, model) {
+		var x2 = _v4.a;
+		var y2 = _v4.b;
+		var newModel = _Utils_update(
+			model,
+			{
+				swipeCoordinate: _Utils_Tuple2($elm$core$Maybe$Nothing, $elm$core$Maybe$Nothing)
+			});
+		var initialCoordinates = model.swipeCoordinate;
+		if ((initialCoordinates.a.$ === 'Just') && (initialCoordinates.b.$ === 'Just')) {
+			var x1 = initialCoordinates.a.a;
+			var y1 = initialCoordinates.b.a;
+			return ((_Utils_cmp(
+				$elm$core$Basics$abs(x2 - x1),
+				$elm$core$Basics$abs(y2 - y1)) > 0) && ($elm$core$Basics$abs(x2 - x1) > 50)) ? (_Utils_eq(
+				$elm$core$Basics$abs(x2 - x1),
+				x2 - x1) ? A2($author$project$Main$update, $author$project$Main$RightMove, newModel) : A2($author$project$Main$update, $author$project$Main$LeftMove, newModel)) : (($elm$core$Basics$abs(y2 - y1) > 50) ? (_Utils_eq(
+				$elm$core$Basics$abs(y2 - y1),
+				y2 - y1) ? A2($author$project$Main$update, $author$project$Main$DownMove, newModel) : A2($author$project$Main$update, $author$project$Main$UpMove, newModel)) : _Utils_Tuple2(newModel, $elm$core$Platform$Cmd$none));
+		} else {
+			return _Utils_Tuple2(newModel, $elm$core$Platform$Cmd$none);
+		}
+	});
 var $author$project$Main$update = F2(
 	function (msg, model) {
 		var dummy = A2($elm$core$Debug$log, 'message: ', msg);
@@ -6682,19 +6710,40 @@ var $author$project$Main$update = F2(
 										model.grid)))
 						}),
 					$author$project$Main$randomPickCell(model.grid));
+			case 'SwipeStart':
+				var _v1 = msg.a;
+				var x = _v1.a;
+				var y = _v1.b;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							swipeCoordinate: _Utils_Tuple2(
+								$elm$core$Maybe$Just(x),
+								$elm$core$Maybe$Just(y))
+						}),
+					$elm$core$Platform$Cmd$none);
+			case 'SwipeEnd':
+				var _v2 = msg.a;
+				var x = _v2.a;
+				var y = _v2.b;
+				return A2(
+					$author$project$Main$identifySwipeDirectionAndUpdate,
+					_Utils_Tuple2(x, y),
+					model);
 			case 'AddTile':
 				var i = msg.a;
 				return _Utils_Tuple2(
 					A3(
 						$author$project$Main$addTile,
 						function () {
-							var _v1 = A2(
+							var _v3 = A2(
 								$elm$core$Array$get,
 								i,
 								$elm$core$Array$fromList(
 									$author$project$Main$getAvailableCells(model.grid)));
-							if (_v1.$ === 'Just') {
-								var t = _v1.a;
+							if (_v3.$ === 'Just') {
+								var t = _v3.a;
 								return t;
 							} else {
 								return _Utils_Tuple2(-1, -1);
@@ -6709,6 +6758,12 @@ var $author$project$Main$update = F2(
 				return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 		}
 	});
+var $author$project$Main$SwipeEnd = function (a) {
+	return {$: 'SwipeEnd', a: a};
+};
+var $author$project$Main$SwipeStart = function (a) {
+	return {$: 'SwipeStart', a: a};
+};
 var $elm$html$Html$a = _VirtualDom_node('a');
 var $elm$json$Json$Encode$string = _Json_wrap;
 var $elm$html$Html$Attributes$stringProperty = F2(
@@ -6719,6 +6774,11 @@ var $elm$html$Html$Attributes$stringProperty = F2(
 			$elm$json$Json$Encode$string(string));
 	});
 var $elm$html$Html$Attributes$class = $elm$html$Html$Attributes$stringProperty('className');
+var $elm$core$Basics$composeL = F3(
+	function (g, f, x) {
+		return g(
+			f(x));
+	});
 var $elm$html$Html$div = _VirtualDom_node('div');
 var $elm$html$Html$h1 = _VirtualDom_node('h1');
 var $elm$virtual_dom$VirtualDom$Normal = function (a) {
@@ -6738,9 +6798,172 @@ var $elm$html$Html$Events$onClick = function (msg) {
 		'click',
 		$elm$json$Json$Decode$succeed(msg));
 };
+var $mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$defaultOptions = {preventDefault: true, stopPropagation: false};
+var $elm$virtual_dom$VirtualDom$Custom = function (a) {
+	return {$: 'Custom', a: a};
+};
+var $elm$html$Html$Events$custom = F2(
+	function (event, decoder) {
+		return A2(
+			$elm$virtual_dom$VirtualDom$on,
+			event,
+			$elm$virtual_dom$VirtualDom$Custom(decoder));
+	});
+var $mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$Event = F4(
+	function (keys, changedTouches, targetTouches, touches) {
+		return {changedTouches: changedTouches, keys: keys, targetTouches: targetTouches, touches: touches};
+	});
+var $mpizenberg$elm_pointer_events$Internal$Decode$Keys = F3(
+	function (alt, ctrl, shift) {
+		return {alt: alt, ctrl: ctrl, shift: shift};
+	});
+var $elm$json$Json$Decode$bool = _Json_decodeBool;
+var $elm$json$Json$Decode$map3 = _Json_map3;
+var $mpizenberg$elm_pointer_events$Internal$Decode$keys = A4(
+	$elm$json$Json$Decode$map3,
+	$mpizenberg$elm_pointer_events$Internal$Decode$Keys,
+	A2($elm$json$Json$Decode$field, 'altKey', $elm$json$Json$Decode$bool),
+	A2($elm$json$Json$Decode$field, 'ctrlKey', $elm$json$Json$Decode$bool),
+	A2($elm$json$Json$Decode$field, 'shiftKey', $elm$json$Json$Decode$bool));
+var $elm$json$Json$Decode$map4 = _Json_map4;
+var $mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$Touch = F4(
+	function (identifier, clientPos, pagePos, screenPos) {
+		return {clientPos: clientPos, identifier: identifier, pagePos: pagePos, screenPos: screenPos};
+	});
+var $elm$json$Json$Decode$float = _Json_decodeFloat;
+var $mpizenberg$elm_pointer_events$Internal$Decode$clientPos = A3(
+	$elm$json$Json$Decode$map2,
+	F2(
+		function (a, b) {
+			return _Utils_Tuple2(a, b);
+		}),
+	A2($elm$json$Json$Decode$field, 'clientX', $elm$json$Json$Decode$float),
+	A2($elm$json$Json$Decode$field, 'clientY', $elm$json$Json$Decode$float));
+var $elm$json$Json$Decode$int = _Json_decodeInt;
+var $mpizenberg$elm_pointer_events$Internal$Decode$pagePos = A3(
+	$elm$json$Json$Decode$map2,
+	F2(
+		function (a, b) {
+			return _Utils_Tuple2(a, b);
+		}),
+	A2($elm$json$Json$Decode$field, 'pageX', $elm$json$Json$Decode$float),
+	A2($elm$json$Json$Decode$field, 'pageY', $elm$json$Json$Decode$float));
+var $mpizenberg$elm_pointer_events$Internal$Decode$screenPos = A3(
+	$elm$json$Json$Decode$map2,
+	F2(
+		function (a, b) {
+			return _Utils_Tuple2(a, b);
+		}),
+	A2($elm$json$Json$Decode$field, 'screenX', $elm$json$Json$Decode$float),
+	A2($elm$json$Json$Decode$field, 'screenY', $elm$json$Json$Decode$float));
+var $mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$touchDecoder = A5(
+	$elm$json$Json$Decode$map4,
+	$mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$Touch,
+	A2($elm$json$Json$Decode$field, 'identifier', $elm$json$Json$Decode$int),
+	$mpizenberg$elm_pointer_events$Internal$Decode$clientPos,
+	$mpizenberg$elm_pointer_events$Internal$Decode$pagePos,
+	$mpizenberg$elm_pointer_events$Internal$Decode$screenPos);
+var $mpizenberg$elm_pointer_events$Internal$Decode$all = A2(
+	$elm$core$List$foldr,
+	$elm$json$Json$Decode$map2($elm$core$List$cons),
+	$elm$json$Json$Decode$succeed(_List_Nil));
+var $elm$json$Json$Decode$andThen = _Json_andThen;
+var $mpizenberg$elm_pointer_events$Internal$Decode$dynamicListOf = function (itemDecoder) {
+	var decodeOne = function (n) {
+		return A2(
+			$elm$json$Json$Decode$field,
+			$elm$core$String$fromInt(n),
+			itemDecoder);
+	};
+	var decodeN = function (n) {
+		return $mpizenberg$elm_pointer_events$Internal$Decode$all(
+			A2(
+				$elm$core$List$map,
+				decodeOne,
+				A2($elm$core$List$range, 0, n - 1)));
+	};
+	return A2(
+		$elm$json$Json$Decode$andThen,
+		decodeN,
+		A2($elm$json$Json$Decode$field, 'length', $elm$json$Json$Decode$int));
+};
+var $mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$touchListDecoder = $mpizenberg$elm_pointer_events$Internal$Decode$dynamicListOf;
+var $mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$eventDecoder = A5(
+	$elm$json$Json$Decode$map4,
+	$mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$Event,
+	$mpizenberg$elm_pointer_events$Internal$Decode$keys,
+	A2(
+		$elm$json$Json$Decode$field,
+		'changedTouches',
+		$mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$touchListDecoder($mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$touchDecoder)),
+	A2(
+		$elm$json$Json$Decode$field,
+		'targetTouches',
+		$mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$touchListDecoder($mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$touchDecoder)),
+	A2(
+		$elm$json$Json$Decode$field,
+		'touches',
+		$mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$touchListDecoder($mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$touchDecoder)));
+var $mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$onWithOptions = F3(
+	function (event, options, tag) {
+		return A2(
+			$elm$html$Html$Events$custom,
+			event,
+			A2(
+				$elm$json$Json$Decode$map,
+				function (ev) {
+					return {
+						message: tag(ev),
+						preventDefault: options.preventDefault,
+						stopPropagation: options.stopPropagation
+					};
+				},
+				$mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$eventDecoder));
+	});
+var $mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$onEnd = A2($mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$onWithOptions, 'touchend', $mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$defaultOptions);
+var $mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$onStart = A2($mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$onWithOptions, 'touchstart', $mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$defaultOptions);
 var $elm$html$Html$p = _VirtualDom_node('p');
 var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
+var $elm$core$List$head = function (list) {
+	if (list.b) {
+		var x = list.a;
+		var xs = list.b;
+		return $elm$core$Maybe$Just(x);
+	} else {
+		return $elm$core$Maybe$Nothing;
+	}
+};
+var $elm$core$Maybe$map = F2(
+	function (f, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return $elm$core$Maybe$Just(
+				f(value));
+		} else {
+			return $elm$core$Maybe$Nothing;
+		}
+	});
+var $elm$core$Maybe$withDefault = F2(
+	function (_default, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return value;
+		} else {
+			return _default;
+		}
+	});
+var $author$project$Main$touchCoordinates = function (touchEvent) {
+	return A2(
+		$elm$core$Maybe$withDefault,
+		_Utils_Tuple2(0, 0),
+		A2(
+			$elm$core$Maybe$map,
+			function ($) {
+				return $.clientPos;
+			},
+			$elm$core$List$head(touchEvent.changedTouches)));
+};
 var $author$project$Main$view = function (model) {
 	return A2(
 		$elm$html$Html$div,
@@ -6810,7 +7033,11 @@ var $author$project$Main$view = function (model) {
 				$elm$html$Html$div,
 				_List_fromArray(
 					[
-						$elm$html$Html$Attributes$class('grid')
+						$elm$html$Html$Attributes$class('grid'),
+						$mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$onStart(
+						A2($elm$core$Basics$composeL, $author$project$Main$SwipeStart, $author$project$Main$touchCoordinates)),
+						$mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$onEnd(
+						A2($elm$core$Basics$composeL, $author$project$Main$SwipeEnd, $author$project$Main$touchCoordinates))
 					]),
 				$elm$core$Array$toList(
 					A2(

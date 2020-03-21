@@ -7,6 +7,7 @@ import Debug
 import Html exposing (Html, a, div, h1, p, text)
 import Html.Attributes exposing (class)
 import Html.Events exposing (onClick)
+import Html.Events.Extra.Touch as Touch
 import Json.Decode as Decode
 import Random
 
@@ -27,6 +28,7 @@ type alias Grid =
 type alias Model =
     { size : Int
     , grid : Grid
+    , swipeCoordinate : ( Maybe Float, Maybe Float )
     }
 
 
@@ -46,6 +48,7 @@ init =
             EmptyCell
                 |> Array.repeat gridSize
                 |> Array.repeat gridSize
+      , swipeCoordinate = ( Nothing, Nothing )
       }
     , EmptyCell
         |> Array.repeat gridSize
@@ -72,7 +75,11 @@ view model =
             [ p [ class "game-intro" ] [ text "Join the numbers and get to the '2048' tile!" ]
             , a [ class "restart-button", onClick Reset ] [ text "New Game" ]
             ]
-        , div [ class "grid" ]
+        , div
+            [ class "grid"
+            , Touch.onStart (SwipeStart << touchCoordinates)
+            , Touch.onEnd (SwipeEnd << touchCoordinates)
+            ]
             (model.grid
                 |> Array.map
                     (\l ->
@@ -96,6 +103,13 @@ view model =
         ]
 
 
+touchCoordinates : Touch.Event -> ( Float, Float )
+touchCoordinates touchEvent =
+    List.head touchEvent.changedTouches
+        |> Maybe.map .clientPos
+        |> Maybe.withDefault ( 0, 0 )
+
+
 
 -- UPDATE
 
@@ -105,6 +119,8 @@ type Msg
     | RightMove
     | UpMove
     | DownMove
+    | SwipeStart ( Float, Float )
+    | SwipeEnd ( Float, Float )
     | AddTile Int
     | Reset
     | Invalid
@@ -215,8 +231,15 @@ update msg model =
             , model.grid |> randomPickCell
             )
 
-        -- Adds a tile of `2` in the i-th available cell
+        SwipeStart ( x, y ) ->
+            ( { model | swipeCoordinate = ( Just x, Just y ) }, Cmd.none )
+
+        SwipeEnd ( x, y ) ->
+            model
+                |> identifySwipeDirectionAndUpdate ( x, y )
+
         AddTile i ->
+            -- Adds a tile of `2` in the i-th available cell
             ( addTile
                 (case
                     model.grid
@@ -241,6 +264,38 @@ update msg model =
 
         Invalid ->
             ( model, Cmd.none )
+
+
+identifySwipeDirectionAndUpdate : ( Float, Float ) -> Model -> ( Model, Cmd Msg )
+identifySwipeDirectionAndUpdate ( x2, y2 ) model =
+    let
+        initialCoordinates =
+            model.swipeCoordinate
+
+        newModel =
+            { model | swipeCoordinate = ( Nothing, Nothing ) }
+    in
+    case initialCoordinates of
+        ( Just x1, Just y1 ) ->
+            if (abs (x2 - x1) > abs (y2 - y1)) && (abs (x2 - x1) > 50) then
+                if abs (x2 - x1) == (x2 - x1) then
+                    update RightMove newModel
+
+                else
+                    update LeftMove newModel
+
+            else if abs (y2 - y1) > 50 then
+                if abs (y2 - y1) == (y2 - y1) then
+                    update DownMove newModel
+
+                else
+                    update UpMove newModel
+
+            else
+                ( newModel, Cmd.none )
+
+        _ ->
+            ( newModel, Cmd.none )
 
 
 transposeMap : Grid -> Grid -> Grid
