@@ -153,10 +153,72 @@ update msg model =
             )
 
         Up ->
-            ( model, Cmd.none )
+            ( { model
+                | cells =
+                    model.cells
+                        |> transposeMap
+                            (EmptyCell
+                                |> Array.repeat 0
+                                |> Array.repeat 0
+                            )
+                        |> Array.map
+                            (\x ->
+                                x
+                                    |> Array.toList
+                                    |> mergeAndFillRow
+                                    |> Array.fromList
+                            )
+                        |> transposeMap
+                            (EmptyCell
+                                |> Array.repeat 0
+                                |> Array.repeat 0
+                            )
+              }
+            , Random.generate Add
+                (Random.int 1
+                    ((model.cells
+                        |> getAvailableCells
+                        |> List.length
+                     )
+                        - 1
+                    )
+                )
+            )
 
         Down ->
-            ( model, Cmd.none )
+            ( { model
+                | cells =
+                    model.cells
+                        |> transposeMap
+                            (EmptyCell
+                                |> Array.repeat 0
+                                |> Array.repeat 0
+                            )
+                        |> Array.map
+                            (\x ->
+                                x
+                                    |> Array.toList
+                                    |> List.reverse
+                                    |> mergeAndFillRow
+                                    |> List.reverse
+                                    |> Array.fromList
+                            )
+                        |> transposeMap
+                            (EmptyCell
+                                |> Array.repeat 0
+                                |> Array.repeat 0
+                            )
+              }
+            , Random.generate Add
+                (Random.int 1
+                    ((model.cells
+                        |> getAvailableCells
+                        |> List.length
+                     )
+                        - 1
+                    )
+                )
+            )
 
         Reset ->
             init
@@ -181,6 +243,34 @@ update msg model =
                 model
             , Cmd.none
             )
+
+
+transposeMap : Grid -> Grid -> Grid
+transposeMap grid2 grid1 =
+    case Array.get 0 grid1 of
+        Just e ->
+            transposeMap (func 0 e grid2) (Array.slice 1 (Array.length grid1) grid1)
+
+        Nothing ->
+            grid2
+
+
+func : Int -> Array Cell -> Grid -> Grid
+func idx list grid2 =
+    case Array.get 0 list of
+        Just e ->
+            func (idx + 1)
+                (Array.slice 1 (Array.length list) list)
+                (case Array.get idx grid2 of
+                    Just l ->
+                        Array.set idx (Array.push e l) grid2
+
+                    Nothing ->
+                        Array.push (Array.fromList [ e ]) grid2
+                )
+
+        Nothing ->
+            grid2
 
 
 mergeAndFillRow : List Cell -> List Cell
@@ -259,18 +349,24 @@ addTile : Position -> Int -> Model -> Model
 addTile ( x, y ) value model =
     { model
         | cells =
-            Array.set x
-                (Array.set y
-                    (Tile value)
-                    (case Array.get x model.cells of
-                        Just r ->
-                            r
+            model.cells
+                |> Array.set x
+                    (Array.set y
+                        (case value > 0 of
+                            True ->
+                                Tile value
 
-                        Nothing ->
-                            Array.repeat model.size EmptyCell
+                            _ ->
+                                EmptyCell
+                        )
+                        (case Array.get x model.cells of
+                            Just r ->
+                                r
+
+                            Nothing ->
+                                Array.repeat model.size EmptyCell
+                        )
                     )
-                )
-                model.cells
     }
 
 
