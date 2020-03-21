@@ -88,21 +88,18 @@ view model =
 
 
 type Msg
-    = Left
-    | Right
-    | Up
-    | Down
+    = LeftMove
+    | RightMove
+    | UpMove
+    | DownMove
     | Reset
-    | Add Int
-
-
-
--- Returns `Add` msg with a random number between 1 to number of available cells
+    | AddTile Int
 
 
 randomPickCell : Model -> Cmd Msg
 randomPickCell model =
-    Random.generate Add
+    -- Returns `AddTile` msg with a random number between 1 to number of available cells
+    Random.generate AddTile
         (Random.int 1
             ((model.grid
                 |> getAvailableCells
@@ -120,7 +117,7 @@ update msg model =
             Debug.log "message: " msg
     in
     case msg of
-        Left ->
+        LeftMove ->
             ( { model
                 | grid =
                     model.grid
@@ -132,10 +129,10 @@ update msg model =
                                     |> Array.fromList
                             )
               }
-            , randomPickCell model
+            , model |> randomPickCell
             )
 
-        Right ->
+        RightMove ->
             ( { model
                 | grid =
                     model.grid
@@ -149,10 +146,10 @@ update msg model =
                                     |> Array.fromList
                             )
               }
-            , randomPickCell model
+            , model |> randomPickCell
             )
 
-        Up ->
+        UpMove ->
             ( { model
                 | grid =
                     model.grid
@@ -174,10 +171,10 @@ update msg model =
                                 |> Array.repeat 0
                             )
               }
-            , randomPickCell model
+            , model |> randomPickCell
             )
 
-        Down ->
+        DownMove ->
             ( { model
                 | grid =
                     model.grid
@@ -201,14 +198,14 @@ update msg model =
                                 |> Array.repeat 0
                             )
               }
-            , randomPickCell model
+            , model |> randomPickCell
             )
 
         Reset ->
             init
 
         -- Adds a tile of `2` in the i-th available cell
-        Add i ->
+        AddTile i ->
             ( addTile
                 (case
                     model.grid
@@ -233,24 +230,24 @@ transposeMap : Grid -> Grid -> Grid
 transposeMap grid2 grid1 =
     case Array.get 0 grid1 of
         Just e ->
-            transposeMap (updateForTranspose 0 e grid2) (Array.slice 1 (Array.length grid1) grid1)
+            transposeMap (grid2 |> transposeForIdx 0 e) (grid1 |> Array.slice 1 (grid1 |> Array.length))
 
         Nothing ->
             grid2
 
 
-updateForTranspose : Int -> Array Cell -> Grid -> Grid
-updateForTranspose idx list grid2 =
+transposeForIdx : Int -> Array Cell -> Grid -> Grid
+transposeForIdx idx list grid2 =
     case Array.get 0 list of
         Just e ->
-            updateForTranspose (idx + 1)
-                (Array.slice 1 (Array.length list) list)
-                (case Array.get idx grid2 of
+            transposeForIdx (idx + 1)
+                (list |> Array.slice 1 (list |> Array.length))
+                (case grid2 |> Array.get idx of
                     Just l ->
-                        Array.set idx (Array.push e l) grid2
+                        grid2 |> Array.set idx (l |> Array.push e)
 
                     Nothing ->
-                        Array.push (Array.fromList [ e ]) grid2
+                        grid2 |> Array.push (Array.fromList [ e ])
                 )
 
         Nothing ->
@@ -267,9 +264,7 @@ mergeAndFillRow list =
         (updatedRow
             :: [ EmptyCell
                     |> List.repeat
-                        (gridSize
-                            - List.length updatedRow
-                        )
+                        ((list |> List.length) - (updatedRow |> List.length))
                ]
         )
 
@@ -343,12 +338,12 @@ addTile ( x, y ) value model =
                             _ ->
                                 EmptyCell
                         )
-                        (case Array.get x model.grid of
+                        (case model.grid |> Array.get x of
                             Just r ->
                                 r
 
                             Nothing ->
-                                Array.repeat model.size EmptyCell
+                                EmptyCell |> Array.repeat model.size
                         )
                     )
     }
@@ -391,16 +386,16 @@ toDirection string =
     in
     case string of
         "a" ->
-            Left
+            LeftMove
 
         "d" ->
-            Right
+            RightMove
 
         "w" ->
-            Up
+            UpMove
 
         "s" ->
-            Down
+            DownMove
 
         _ ->
             Reset

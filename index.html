@@ -5668,23 +5668,23 @@ var $elm$browser$Browser$Events$on = F3(
 			A3($elm$browser$Browser$Events$MySub, node, name, decoder));
 	});
 var $elm$browser$Browser$Events$onKeyPress = A2($elm$browser$Browser$Events$on, $elm$browser$Browser$Events$Document, 'keypress');
-var $author$project$Main$Down = {$: 'Down'};
-var $author$project$Main$Left = {$: 'Left'};
+var $author$project$Main$DownMove = {$: 'DownMove'};
+var $author$project$Main$LeftMove = {$: 'LeftMove'};
 var $author$project$Main$Reset = {$: 'Reset'};
-var $author$project$Main$Right = {$: 'Right'};
-var $author$project$Main$Up = {$: 'Up'};
+var $author$project$Main$RightMove = {$: 'RightMove'};
+var $author$project$Main$UpMove = {$: 'UpMove'};
 var $elm$core$Debug$log = _Debug_log;
 var $author$project$Main$toDirection = function (string) {
 	var dummy = A2($elm$core$Debug$log, 'input key: ', string);
 	switch (string) {
 		case 'a':
-			return $author$project$Main$Left;
+			return $author$project$Main$LeftMove;
 		case 'd':
-			return $author$project$Main$Right;
+			return $author$project$Main$RightMove;
 		case 'w':
-			return $author$project$Main$Up;
+			return $author$project$Main$UpMove;
 		case 's':
-			return $author$project$Main$Down;
+			return $author$project$Main$DownMove;
 		default:
 			return $author$project$Main$Reset;
 	}
@@ -6067,15 +6067,15 @@ var $author$project$Main$mergeAndFillRow = function (list) {
 				[
 					A2(
 					$elm$core$List$repeat,
-					$author$project$Main$gridSize - $elm$core$List$length(updatedRow),
+					$elm$core$List$length(list) - $elm$core$List$length(updatedRow),
 					$author$project$Main$EmptyCell)
 				])));
 };
 var $elm$core$Basics$negate = function (n) {
 	return -n;
 };
-var $author$project$Main$Add = function (a) {
-	return {$: 'Add', a: a};
+var $author$project$Main$AddTile = function (a) {
+	return {$: 'AddTile', a: a};
 };
 var $elm$random$Random$Generate = function (a) {
 	return {$: 'Generate', a: a};
@@ -6224,7 +6224,7 @@ var $elm$random$Random$int = F2(
 var $author$project$Main$randomPickCell = function (model) {
 	return A2(
 		$elm$random$Random$generate,
-		$author$project$Main$Add,
+		$author$project$Main$AddTile,
 		A2(
 			$elm$random$Random$int,
 			1,
@@ -6536,9 +6536,9 @@ var $elm$core$Array$push = F2(
 			A2($elm$core$Elm$JsArray$push, a, tail),
 			array);
 	});
-var $author$project$Main$updateForTranspose = F3(
+var $author$project$Main$transposeForIdx = F3(
 	function (idx, list, grid2) {
-		updateForTranspose:
+		transposeForIdx:
 		while (true) {
 			var _v0 = A2($elm$core$Array$get, 0, list);
 			if (_v0.$ === 'Just') {
@@ -6570,7 +6570,7 @@ var $author$project$Main$updateForTranspose = F3(
 				idx = $temp$idx;
 				list = $temp$list;
 				grid2 = $temp$grid2;
-				continue updateForTranspose;
+				continue transposeForIdx;
 			} else {
 				return grid2;
 			}
@@ -6583,7 +6583,7 @@ var $author$project$Main$transposeMap = F2(
 			var _v0 = A2($elm$core$Array$get, 0, grid1);
 			if (_v0.$ === 'Just') {
 				var e = _v0.a;
-				var $temp$grid2 = A3($author$project$Main$updateForTranspose, 0, e, grid2),
+				var $temp$grid2 = A3($author$project$Main$transposeForIdx, 0, e, grid2),
 					$temp$grid1 = A3(
 					$elm$core$Array$slice,
 					1,
@@ -6601,7 +6601,7 @@ var $author$project$Main$update = F2(
 	function (msg, model) {
 		var dummy = A2($elm$core$Debug$log, 'message: ', msg);
 		switch (msg.$) {
-			case 'Left':
+			case 'LeftMove':
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
@@ -6616,7 +6616,7 @@ var $author$project$Main$update = F2(
 								model.grid)
 						}),
 					$author$project$Main$randomPickCell(model));
-			case 'Right':
+			case 'RightMove':
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
@@ -6633,7 +6633,7 @@ var $author$project$Main$update = F2(
 								model.grid)
 						}),
 					$author$project$Main$randomPickCell(model));
-			case 'Up':
+			case 'UpMove':
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
@@ -6660,7 +6660,7 @@ var $author$project$Main$update = F2(
 										model.grid)))
 						}),
 					$author$project$Main$randomPickCell(model));
-			case 'Down':
+			case 'DownMove':
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
