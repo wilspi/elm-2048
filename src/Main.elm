@@ -4,8 +4,9 @@ import Array exposing (Array)
 import Browser
 import Browser.Events as BE
 import Debug
-import Html exposing (Html, div, table, td, text, tr)
+import Html exposing (Html, a, div, h1, p, text)
 import Html.Attributes exposing (class)
+import Html.Events exposing (onClick)
 import Json.Decode as Decode
 import Random
 
@@ -46,7 +47,10 @@ init =
                 |> Array.repeat gridSize
                 |> Array.repeat gridSize
       }
-    , Cmd.none
+    , EmptyCell
+        |> Array.repeat gridSize
+        |> Array.repeat gridSize
+        |> randomPickCell
     )
 
 
@@ -56,30 +60,39 @@ init =
 
 view : Model -> Html Msg
 view model =
-    div [ class "outer-2048" ]
-        [ div [] [ text "2048", text "Use 'w', 'a', 's', 'd' to play" ]
-        , div [ class "grid-2048" ]
-            [ table []
-                (model.grid
-                    |> Array.map
-                        (\l ->
-                            tr []
-                                (l
-                                    |> Array.map
-                                        (\c ->
-                                            case c of
-                                                Tile v ->
-                                                    td [] [ text (String.fromInt v) ]
-
-                                                EmptyCell ->
-                                                    td [] [ text "0" ]
-                                        )
-                                    |> Array.toList
-                                )
-                        )
-                    |> Array.toList
-                )
+    div [ class "container" ]
+        [ div [ class "heading" ]
+            [ h1 [ class "title" ]
+                [ text "2048" ]
+            , div
+                [ class "scores-container" ]
+                []
             ]
+        , div [ class "above-grid" ]
+            [ p [ class "game-intro" ] [ text "Join the numbers and get to the '2048' tile!" ]
+            , a [ class "restart-button", onClick Reset ] [ text "New Game" ]
+            ]
+        , div [ class "grid" ]
+            (model.grid
+                |> Array.map
+                    (\l ->
+                        div [ class "row" ]
+                            (l
+                                |> Array.map
+                                    (\c ->
+                                        case c of
+                                            Tile v ->
+                                                div [ class ("cell" ++ " tile" ++ String.fromInt v) ] [ text (String.fromInt v) ]
+
+                                            EmptyCell ->
+                                                div [ class "cell emptycell" ] [ text "0" ]
+                                    )
+                                |> Array.toList
+                            )
+                    )
+                |> Array.toList
+            )
+        , div [ class "below-grid" ] [ text "Use 'w', 'a', 's', 'd' to play" ]
         ]
 
 
@@ -92,16 +105,17 @@ type Msg
     | RightMove
     | UpMove
     | DownMove
-    | Reset
     | AddTile Int
+    | Reset
+    | Invalid
 
 
-randomPickCell : Model -> Cmd Msg
-randomPickCell model =
+randomPickCell : Grid -> Cmd Msg
+randomPickCell grid =
     -- Returns `AddTile` msg with a random number between 1 to number of available cells
     Random.generate AddTile
         (Random.int 1
-            ((model.grid
+            ((grid
                 |> getAvailableCells
                 |> List.length
              )
@@ -129,7 +143,7 @@ update msg model =
                                     |> Array.fromList
                             )
               }
-            , model |> randomPickCell
+            , model.grid |> randomPickCell
             )
 
         RightMove ->
@@ -146,7 +160,7 @@ update msg model =
                                     |> Array.fromList
                             )
               }
-            , model |> randomPickCell
+            , model.grid |> randomPickCell
             )
 
         UpMove ->
@@ -171,7 +185,7 @@ update msg model =
                                 |> Array.repeat 0
                             )
               }
-            , model |> randomPickCell
+            , model.grid |> randomPickCell
             )
 
         DownMove ->
@@ -198,11 +212,8 @@ update msg model =
                                 |> Array.repeat 0
                             )
               }
-            , model |> randomPickCell
+            , model.grid |> randomPickCell
             )
-
-        Reset ->
-            init
 
         -- Adds a tile of `2` in the i-th available cell
         AddTile i ->
@@ -224,6 +235,12 @@ update msg model =
                 model
             , Cmd.none
             )
+
+        Reset ->
+            init
+
+        Invalid ->
+            ( model, Cmd.none )
 
 
 transposeMap : Grid -> Grid -> Grid
@@ -397,8 +414,11 @@ toDirection string =
         "s" ->
             DownMove
 
-        _ ->
+        "r" ->
             Reset
+
+        _ ->
+            Invalid
 
 
 keyDecoder : Decode.Decoder String

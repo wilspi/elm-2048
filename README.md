@@ -17,6 +17,6 @@ This is an implementation of [2048](http://gabrielecirulli.github.io/2048/) game
   ```
   elm --help
   elm-format src/Main.elm --yes
-  elm make src/Main.elm
+  elm make src/Main.elm --output index.js
   elm reactor
   ```
