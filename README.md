@@ -6,7 +6,7 @@
 This is an implementation of [2048](http://gabrielecirulli.github.io/2048/) game in Elm
 
 
-![2048](https://imgur.com/hUSfWKl)
+![2048](https://i.imgur.com/hUSfWKl.png)
 
 
 
