@@ -6,6 +6,10 @@
 This is an implementation of [2048](http://gabrielecirulli.github.io/2048/) game in Elm
 
 
+![2048](https://imgur.com/hUSfWKl)
+
+
+
 ### Development
 * Install `nix`  
   Follow steps [here](https://gist.github.com/wilspi/aad81f832d030d80fca91dfa264a1f8a), if not done already
