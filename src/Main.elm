@@ -63,7 +63,7 @@ init bestScore =
       , swipeCoordinate = ( Nothing, Nothing )
       , score = 0
       , bestScore = bestScore
-      , shakeEnabled = True
+      , shakeEnabled = False
       }
     , EmptyCell
         |> Array.repeat gridSize

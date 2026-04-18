@@ -5506,7 +5506,7 @@ var $author$project$Main$init = function (bestScore) {
 				$author$project$Main$gridSize,
 				A2($elm$core$Array$repeat, $author$project$Main$gridSize, $author$project$Main$EmptyCell)),
 			score: 0,
-			shakeEnabled: true,
+			shakeEnabled: false,
 			size: $author$project$Main$gridSize,
 			swipeCoordinate: _Utils_Tuple2($elm$core$Maybe$Nothing, $elm$core$Maybe$Nothing)
 		},
