@@ -5902,7 +5902,7 @@ var $elm$browser$Browser$Events$on = F3(
 		return $elm$browser$Browser$Events$subscription(
 			A3($elm$browser$Browser$Events$MySub, node, name, decoder));
 	});
-var $elm$browser$Browser$Events$onKeyPress = A2($elm$browser$Browser$Events$on, $elm$browser$Browser$Events$Document, 'keypress');
+var $elm$browser$Browser$Events$onKeyDown = A2($elm$browser$Browser$Events$on, $elm$browser$Browser$Events$Document, 'keydown');
 var $author$project$Main$DownMove = {$: 'DownMove'};
 var $author$project$Main$Invalid = {$: 'Invalid'};
 var $author$project$Main$LeftMove = {$: 'LeftMove'};
@@ -5913,11 +5913,19 @@ var $author$project$Main$toDirection = function (string) {
 	switch (string) {
 		case 'a':
 			return $author$project$Main$LeftMove;
+		case 'ArrowLeft':
+			return $author$project$Main$LeftMove;
 		case 'd':
+			return $author$project$Main$RightMove;
+		case 'ArrowRight':
 			return $author$project$Main$RightMove;
 		case 'w':
 			return $author$project$Main$UpMove;
+		case 'ArrowUp':
+			return $author$project$Main$UpMove;
 		case 's':
+			return $author$project$Main$DownMove;
+		case 'ArrowDown':
 			return $author$project$Main$DownMove;
 		case 'r':
 			return $author$project$Main$Reset;
@@ -5929,7 +5937,7 @@ var $author$project$Main$subscriptions = function (_v0) {
 	return $elm$core$Platform$Sub$batch(
 		_List_fromArray(
 			[
-				$elm$browser$Browser$Events$onKeyPress(
+				$elm$browser$Browser$Events$onKeyDown(
 				A2($elm$json$Json$Decode$map, $author$project$Main$toDirection, $author$project$Main$keyDecoder))
 			]));
 };
@@ -6724,14 +6732,7 @@ var $author$project$Main$update = F2(
 				var gained = _v1.b;
 				return A3($author$project$Main$commitMove, newGrid, gained, model);
 			case 'RightMove':
-				var _v2 = A2(
-					$elm$core$Tuple$mapFirst,
-					$elm$core$Array$map(
-						A2(
-							$elm$core$Basics$composeR,
-							$elm$core$Array$toList,
-							A2($elm$core$Basics$composeR, $elm$core$List$reverse, $elm$core$Array$fromList))),
-					A2($author$project$Main$applyMoveToRows, $elm$core$List$reverse, model.grid));
+				var _v2 = A2($author$project$Main$applyMoveToRows, $elm$core$List$reverse, model.grid);
 				var newGrid = _v2.a;
 				var gained = _v2.b;
 				return A3($author$project$Main$commitMove, newGrid, gained, model);
@@ -6749,14 +6750,7 @@ var $author$project$Main$update = F2(
 			case 'DownMove':
 				var _v4 = A2(
 					$elm$core$Tuple$mapFirst,
-					A2(
-						$elm$core$Basics$composeR,
-						$elm$core$Array$map(
-							A2(
-								$elm$core$Basics$composeR,
-								$elm$core$Array$toList,
-								A2($elm$core$Basics$composeR, $elm$core$List$reverse, $elm$core$Array$fromList))),
-						$author$project$Main$transposeMap($author$project$Main$emptyGrid)),
+					$author$project$Main$transposeMap($author$project$Main$emptyGrid),
 					A2(
 						$author$project$Main$applyMoveToRows,
 						$elm$core$List$reverse,

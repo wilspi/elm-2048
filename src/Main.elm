@@ -230,8 +230,6 @@ update msg model =
             let
                 ( newGrid, gained ) =
                     applyMoveToRows List.reverse model.grid
-                        |> Tuple.mapFirst
-                            (Array.map (Array.toList >> List.reverse >> Array.fromList))
             in
             commitMove newGrid gained model
 
@@ -251,10 +249,7 @@ update msg model =
                     model.grid
                         |> transposeMap emptyGrid
                         |> applyMoveToRows List.reverse
-                        |> Tuple.mapFirst
-                            (Array.map (Array.toList >> List.reverse >> Array.fromList)
-                                >> transposeMap emptyGrid
-                            )
+                        |> Tuple.mapFirst (transposeMap emptyGrid)
             in
             commitMove newGrid gained model
 
@@ -508,7 +503,7 @@ mergeCell ( cell1, cell2 ) =
 subscriptions : Model -> Sub Msg
 subscriptions _ =
     Sub.batch
-        [ BE.onKeyPress (Decode.map toDirection keyDecoder)
+        [ BE.onKeyDown (Decode.map toDirection keyDecoder)
         ]
 
 
@@ -518,13 +513,25 @@ toDirection string =
         "a" ->
             LeftMove
 
+        "ArrowLeft" ->
+            LeftMove
+
         "d" ->
+            RightMove
+
+        "ArrowRight" ->
             RightMove
 
         "w" ->
             UpMove
 
+        "ArrowUp" ->
+            UpMove
+
         "s" ->
+            DownMove
+
+        "ArrowDown" ->
             DownMove
 
         "r" ->

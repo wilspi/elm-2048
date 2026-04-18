@@ -192,7 +192,6 @@ h1.title {
 .grid {
   position: relative;
   width: var(--grid-size);
-  height: var(--grid-size);
   background-color: var(--color-grid);
   border-radius: var(--radius-grid);
   padding: var(--cell-gap);
