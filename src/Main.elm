@@ -4,7 +4,7 @@ import Array exposing (Array)
 import Browser
 import Browser.Events as BE
 import Html exposing (Html, a, button, div, h1, p, span, text)
-import Html.Attributes exposing (class, href, rel, target)
+import Html.Attributes exposing (attribute, class)
 import Html.Events exposing (onClick)
 import Html.Events.Extra.Touch as Touch
 import Json.Decode as Decode
@@ -18,7 +18,7 @@ import Random
 port saveBestScore : Int -> Cmd msg
 
 
-port triggerShare : { score : Int, best : Int, url : String } -> Cmd msg
+port onShake : (String -> msg) -> Sub msg
 
 
 
@@ -40,6 +40,7 @@ type alias Model =
     , swipeCoordinate : ( Maybe Float, Maybe Float )
     , score : Int
     , bestScore : Int
+    , shakeEnabled : Bool
     }
 
 
@@ -62,6 +63,7 @@ init bestScore =
       , swipeCoordinate = ( Nothing, Nothing )
       , score = 0
       , bestScore = bestScore
+      , shakeEnabled = True
       }
     , EmptyCell
         |> Array.repeat gridSize
@@ -87,8 +89,35 @@ view model =
         , div [ class "above-grid" ]
             [ p [ class "game-intro" ] [ text "Join the numbers and get to the 2048 tile!" ]
             , div [ class "buttons" ]
-                [ button [ class "share-button", onClick Share ] [ text "Share" ]
+                [ button
+                    [ class "share-button"
+                    , attribute "data-score" (String.fromInt model.score)
+                    , attribute "data-best" (String.fromInt model.bestScore)
+                    ]
+                    [ text "Share" ]
                 , a [ class "restart-button", onClick Reset ] [ text "New Game" ]
+                ]
+            , div [ class "shake-row" ]
+                [ button
+                    [ class
+                        ("shake-toggle"
+                            ++ (if model.shakeEnabled then
+                                    " shake-toggle--on"
+
+                                else
+                                    " shake-toggle--off"
+                               )
+                        )
+                    , onClick ToggleShake
+                    ]
+                    [ text
+                        (if model.shakeEnabled then
+                            "🫨 Shake Gestures ON"
+
+                         else
+                            "🫨 Shake Gestures OFF"
+                        )
+                    ]
                 ]
             ]
         , div
@@ -122,7 +151,7 @@ view model =
                         []
                    )
             )
-        , div [ class "below-grid" ] [ text "Use arrow keys or W A S D to play" ]
+        , div [ class "below-grid" ] [ text "Use Arrow keys / WASD · Swipe · Shake to play" ]
         ]
 
 
@@ -154,7 +183,7 @@ type Msg
     | SwipeEnd ( Float, Float )
     | AddTile Int
     | Reset
-    | Share
+    | ToggleShake
     | Invalid
 
 
@@ -279,16 +308,14 @@ update msg model =
             )
 
         Reset ->
-            init model.bestScore
+            let
+                ( newModel, cmd ) =
+                    init model.bestScore
+            in
+            ( { newModel | shakeEnabled = model.shakeEnabled }, cmd )
 
-        Share ->
-            ( model
-            , triggerShare
-                { score = model.score
-                , best = model.bestScore
-                , url = "https://dev.wilspi.com/elm-2048/"
-                }
-            )
+        ToggleShake ->
+            ( { model | shakeEnabled = not model.shakeEnabled }, Cmd.none )
 
         Invalid ->
             ( model, Cmd.none )
@@ -501,9 +528,14 @@ mergeCell ( cell1, cell2 ) =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions _ =
+subscriptions model =
     Sub.batch
         [ BE.onKeyDown (Decode.map toDirection keyDecoder)
+        , if model.shakeEnabled then
+            onShake toDirection
+
+          else
+            Sub.none
         ]
 
 
@@ -516,10 +548,16 @@ toDirection string =
         "ArrowLeft" ->
             LeftMove
 
+        "shake-left" ->
+            LeftMove
+
         "d" ->
             RightMove
 
         "ArrowRight" ->
+            RightMove
+
+        "shake-right" ->
             RightMove
 
         "w" ->
@@ -528,10 +566,16 @@ toDirection string =
         "ArrowUp" ->
             UpMove
 
+        "shake-up" ->
+            UpMove
+
         "s" ->
             DownMove
 
         "ArrowDown" ->
+            DownMove
+
+        "shake-down" ->
             DownMove
 
         "r" ->

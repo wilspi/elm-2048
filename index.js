@@ -5506,6 +5506,7 @@ var $author$project$Main$init = function (bestScore) {
 				$author$project$Main$gridSize,
 				A2($elm$core$Array$repeat, $author$project$Main$gridSize, $author$project$Main$EmptyCell)),
 			score: 0,
+			shakeEnabled: true,
 			size: $author$project$Main$gridSize,
 			swipeCoordinate: _Utils_Tuple2($elm$core$Maybe$Nothing, $elm$core$Maybe$Nothing)
 		},
@@ -5520,6 +5521,7 @@ var $elm$core$Platform$Sub$batch = _Platform_batch;
 var $elm$json$Json$Decode$field = _Json_decodeField;
 var $elm$json$Json$Decode$string = _Json_decodeString;
 var $author$project$Main$keyDecoder = A2($elm$json$Json$Decode$field, 'key', $elm$json$Json$Decode$string);
+var $elm$core$Platform$Sub$none = $elm$core$Platform$Sub$batch(_List_Nil);
 var $elm$browser$Browser$Events$Document = {$: 'Document'};
 var $elm$browser$Browser$Events$MySub = F3(
 	function (a, b, c) {
@@ -5903,6 +5905,7 @@ var $elm$browser$Browser$Events$on = F3(
 			A3($elm$browser$Browser$Events$MySub, node, name, decoder));
 	});
 var $elm$browser$Browser$Events$onKeyDown = A2($elm$browser$Browser$Events$on, $elm$browser$Browser$Events$Document, 'keydown');
+var $author$project$Main$onShake = _Platform_incomingPort('onShake', $elm$json$Json$Decode$string);
 var $author$project$Main$DownMove = {$: 'DownMove'};
 var $author$project$Main$Invalid = {$: 'Invalid'};
 var $author$project$Main$LeftMove = {$: 'LeftMove'};
@@ -5915,17 +5918,25 @@ var $author$project$Main$toDirection = function (string) {
 			return $author$project$Main$LeftMove;
 		case 'ArrowLeft':
 			return $author$project$Main$LeftMove;
+		case 'shake-left':
+			return $author$project$Main$LeftMove;
 		case 'd':
 			return $author$project$Main$RightMove;
 		case 'ArrowRight':
+			return $author$project$Main$RightMove;
+		case 'shake-right':
 			return $author$project$Main$RightMove;
 		case 'w':
 			return $author$project$Main$UpMove;
 		case 'ArrowUp':
 			return $author$project$Main$UpMove;
+		case 'shake-up':
+			return $author$project$Main$UpMove;
 		case 's':
 			return $author$project$Main$DownMove;
 		case 'ArrowDown':
+			return $author$project$Main$DownMove;
+		case 'shake-down':
 			return $author$project$Main$DownMove;
 		case 'r':
 			return $author$project$Main$Reset;
@@ -5933,12 +5944,13 @@ var $author$project$Main$toDirection = function (string) {
 			return $author$project$Main$Invalid;
 	}
 };
-var $author$project$Main$subscriptions = function (_v0) {
+var $author$project$Main$subscriptions = function (model) {
 	return $elm$core$Platform$Sub$batch(
 		_List_fromArray(
 			[
 				$elm$browser$Browser$Events$onKeyDown(
-				A2($elm$json$Json$Decode$map, $author$project$Main$toDirection, $author$project$Main$keyDecoder))
+				A2($elm$json$Json$Decode$map, $author$project$Main$toDirection, $author$project$Main$keyDecoder)),
+				model.shakeEnabled ? $author$project$Main$onShake($author$project$Main$toDirection) : $elm$core$Platform$Sub$none
 			]));
 };
 var $elm$core$Basics$abs = function (n) {
@@ -6306,6 +6318,7 @@ var $elm$core$Tuple$mapFirst = F2(
 			func(x),
 			y);
 	});
+var $elm$core$Basics$not = _Basics_not;
 var $elm$core$Array$length = function (_v0) {
 	var len = _v0.a;
 	return len;
@@ -6672,41 +6685,10 @@ var $author$project$Main$transposeMap = F2(
 			}
 		}
 	});
-var $elm$json$Json$Encode$object = function (pairs) {
-	return _Json_wrap(
-		A3(
-			$elm$core$List$foldl,
-			F2(
-				function (_v0, obj) {
-					var k = _v0.a;
-					var v = _v0.b;
-					return A3(_Json_addField, k, v, obj);
-				}),
-			_Json_emptyObject(_Utils_Tuple0),
-			pairs));
-};
-var $elm$json$Json$Encode$string = _Json_wrap;
-var $author$project$Main$triggerShare = _Platform_outgoingPort(
-	'triggerShare',
-	function ($) {
-		return $elm$json$Json$Encode$object(
-			_List_fromArray(
-				[
-					_Utils_Tuple2(
-					'best',
-					$elm$json$Json$Encode$int($.best)),
-					_Utils_Tuple2(
-					'score',
-					$elm$json$Json$Encode$int($.score)),
-					_Utils_Tuple2(
-					'url',
-					$elm$json$Json$Encode$string($.url))
-				]));
-	});
 var $author$project$Main$identifySwipeDirectionAndUpdate = F2(
-	function (_v8, model) {
-		var x2 = _v8.a;
-		var y2 = _v8.b;
+	function (_v9, model) {
+		var x2 = _v9.a;
+		var y2 = _v9.b;
 		var newModel = _Utils_update(
 			model,
 			{
@@ -6801,25 +6783,42 @@ var $author$project$Main$update = F2(
 						model),
 					$elm$core$Platform$Cmd$none);
 			case 'Reset':
-				return $author$project$Main$init(model.bestScore);
-			case 'Share':
+				var _v8 = $author$project$Main$init(model.bestScore);
+				var newModel = _v8.a;
+				var cmd = _v8.b;
 				return _Utils_Tuple2(
-					model,
-					$author$project$Main$triggerShare(
-						{best: model.bestScore, score: model.score, url: 'https://dev.wilspi.com/elm-2048/'}));
+					_Utils_update(
+						newModel,
+						{shakeEnabled: model.shakeEnabled}),
+					cmd);
+			case 'ToggleShake':
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{shakeEnabled: !model.shakeEnabled}),
+					$elm$core$Platform$Cmd$none);
 			default:
 				return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 		}
 	});
-var $author$project$Main$Share = {$: 'Share'};
 var $author$project$Main$SwipeEnd = function (a) {
 	return {$: 'SwipeEnd', a: a};
 };
 var $author$project$Main$SwipeStart = function (a) {
 	return {$: 'SwipeStart', a: a};
 };
+var $author$project$Main$ToggleShake = {$: 'ToggleShake'};
 var $elm$html$Html$a = _VirtualDom_node('a');
+var $elm$virtual_dom$VirtualDom$attribute = F2(
+	function (key, value) {
+		return A2(
+			_VirtualDom_attribute,
+			_VirtualDom_noOnOrFormAction(key),
+			_VirtualDom_noJavaScriptOrHtmlUri(value));
+	});
+var $elm$html$Html$Attributes$attribute = $elm$virtual_dom$VirtualDom$attribute;
 var $elm$html$Html$button = _VirtualDom_node('button');
+var $elm$json$Json$Encode$string = _Json_wrap;
 var $elm$html$Html$Attributes$stringProperty = F2(
 	function (key, string) {
 		return A2(
@@ -6856,7 +6855,6 @@ var $elm$core$List$any = F2(
 			}
 		}
 	});
-var $elm$core$Basics$not = _Basics_not;
 var $elm$core$Tuple$pair = F2(
 	function (a, b) {
 		return _Utils_Tuple2(a, b);
@@ -7187,7 +7185,14 @@ var $author$project$Main$view = function (model) {
 								_List_fromArray(
 									[
 										$elm$html$Html$Attributes$class('share-button'),
-										$elm$html$Html$Events$onClick($author$project$Main$Share)
+										A2(
+										$elm$html$Html$Attributes$attribute,
+										'data-score',
+										$elm$core$String$fromInt(model.score)),
+										A2(
+										$elm$html$Html$Attributes$attribute,
+										'data-best',
+										$elm$core$String$fromInt(model.bestScore))
 									]),
 								_List_fromArray(
 									[
@@ -7203,6 +7208,28 @@ var $author$project$Main$view = function (model) {
 								_List_fromArray(
 									[
 										$elm$html$Html$text('New Game')
+									]))
+							])),
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								$elm$html$Html$Attributes$class('shake-row')
+							]),
+						_List_fromArray(
+							[
+								A2(
+								$elm$html$Html$button,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class(
+										'shake-toggle' + (model.shakeEnabled ? ' shake-toggle--on' : ' shake-toggle--off')),
+										$elm$html$Html$Events$onClick($author$project$Main$ToggleShake)
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text(
+										model.shakeEnabled ? '🫨 Shake Gestures ON' : '🫨 Shake Gestures OFF')
 									]))
 							]))
 					])),
@@ -7282,7 +7309,7 @@ var $author$project$Main$view = function (model) {
 					]),
 				_List_fromArray(
 					[
-						$elm$html$Html$text('Use arrow keys or W A S D to play')
+						$elm$html$Html$text('Use Arrow keys / WASD · Swipe · Shake to play')
 					]))
 			]));
 };

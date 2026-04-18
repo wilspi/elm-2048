@@ -83,9 +83,43 @@ h1.title {
   line-height: 1;
 }
 
+
 .scores-container {
   display: flex;
   gap: 8px;
+}
+
+.shake-row {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 520px) {
+  .shake-row {
+    justify-content: flex-start;
+  }
+}
+
+.shake-toggle {
+  font-size: 12px;
+  font-weight: 700;
+  border: none;
+  border-radius: 20px;
+  padding: 4px 12px;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+  letter-spacing: 0.2px;
+}
+
+.shake-toggle--on {
+  background: #ede0c8;
+  color: #776e65;
+}
+
+.shake-toggle--off {
+  background: #cdc1b4;
+  color: #9f8b77;
 }
 
 .score-box {
