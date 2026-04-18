@@ -86,85 +86,129 @@
                 localStorage.setItem("2048-best-score", score);
             });
 
-            // Directional shake detection
+            // Gesture state
+            var currentMode = "off";
+            var currentGamma = 0; // left/right tilt
+            var currentBeta = 0;  // forward/back tilt
+            var orientationFired = false;
+            var TILT_THRESHOLD = 28;
+            var NEUTRAL_ZONE = 12;
+
+            // Shake state
             var lastAccel = { x: 0, y: 0, z: 0 };
             var lastShakeAt = 0;
-            var lockedDirection = null;  // direction locked on first significant movement
-            var accumulated = 0;         // magnitude built up in that direction
-            var lockExpiry = 0;          // when to abandon the current lock
-            var LOCK_THRESHOLD = 4;      // min delta to lock a direction
-            var FIRE_THRESHOLD = 30;     // accumulated magnitude to trigger move
-            var DOMINANT_RATIO = 1.8;    // axis must dominate by this factor
+            var shakeAccum = 0;
+            var shakeLockDir = null;
+            var shakeLockExpiry = 0;
+            var SHAKE_LOCK_THRESHOLD = 4;
+            var SHAKE_FIRE_THRESHOLD = 28;
+            var SHAKE_DOMINANT_RATIO = 1.8;
             var SHAKE_COOLDOWN = 900;
-            var LOCK_WINDOW = 400;       // ms before direction lock resets
+            var SHAKE_LOCK_WINDOW = 400;
 
-            function setupShake() {
-                window.addEventListener("devicemotion", function (e) {
-                    var a = e.accelerationIncludingGravity;
-                    if (!a) return;
-                    var dx = a.x - lastAccel.x;
-                    var dy = a.y - lastAccel.y;
-                    lastAccel = { x: a.x, y: a.y, z: a.z };
-                    var absDx = Math.abs(dx);
-                    var absDy = Math.abs(dy);
-                    var now = Date.now();
-
-                    // Reset lock if window expired
-                    if (now > lockExpiry) {
-                        lockedDirection = null;
-                        accumulated = 0;
-                    }
-
-                    // Lock direction on first significant, clearly dominant movement
-                    if (!lockedDirection) {
-                        var dominant = absDx >= absDy
-                            ? absDx / (absDy || 0.1)
-                            : absDy / (absDx || 0.1);
-                        if ((absDx > LOCK_THRESHOLD || absDy > LOCK_THRESHOLD) &&
-                            dominant >= DOMINANT_RATIO) {
-                            lockedDirection = absDx >= absDy
-                                ? (dx > 0 ? "shake-right" : "shake-left")
-                                : (dy > 0 ? "shake-up" : "shake-down");
-                            lockExpiry = now + LOCK_WINDOW;
-                            accumulated = 0;
-                        }
-                    }
-
-                    // Accumulate magnitude along locked axis
-                    if (lockedDirection) {
-                        accumulated += lockedDirection.includes("left") || lockedDirection.includes("right")
-                            ? absDx : absDy;
-
-                        if (accumulated >= FIRE_THRESHOLD && now - lastShakeAt > SHAKE_COOLDOWN) {
-                            lastShakeAt = now;
-                            app.ports.onShake.send(lockedDirection);
-                            lockedDirection = null;
-                            accumulated = 0;
-                        }
-                    }
-                });
+            function directionFromOrientation() {
+                var g = currentGamma;
+                var b = currentBeta - 90; // normalize: 0 = upright
+                var absG = Math.abs(g);
+                var absB = Math.abs(b);
+                if (absG < 10 && absB < 10) return null;
+                if (absG >= absB) return g > 0 ? "right" : "left";
+                return b > 0 ? "down" : "up";
             }
 
-            // iOS 13+ requires explicit permission from a user gesture
-            if (
-                typeof DeviceMotionEvent !== "undefined" &&
-                typeof DeviceMotionEvent.requestPermission === "function"
-            ) {
-                document.addEventListener(
-                    "click",
-                    function requestMotion() {
-                        DeviceMotionEvent.requestPermission()
-                            .then(function (state) {
-                                if (state === "granted") setupShake();
-                            })
-                            .catch(console.error);
-                        document.removeEventListener("click", requestMotion);
-                    },
-                    { once: true },
-                );
-            } else {
-                setupShake();
+            function handleOrientation(e) {
+                currentGamma = e.gamma || 0;
+                currentBeta = e.beta || 0;
+                if (currentMode === "off") return;
+
+                var absG = Math.abs(currentGamma);
+                var absB = Math.abs(currentBeta - 90);
+
+                if (!orientationFired) {
+                    if (absG > TILT_THRESHOLD || absB > TILT_THRESHOLD) {
+                        var dir = directionFromOrientation();
+                        if (dir) {
+                            orientationFired = true;
+                            app.ports.onGesture.send(dir);
+                        }
+                    }
+                } else if (absG < NEUTRAL_ZONE && absB < NEUTRAL_ZONE) {
+                    orientationFired = false;
+                }
             }
+
+            function handleMotion(e) {
+                if (currentMode !== "both") return;
+                var a = e.accelerationIncludingGravity;
+                if (!a) return;
+                var dx = a.x - lastAccel.x;
+                var dy = a.y - lastAccel.y;
+                lastAccel = { x: a.x, y: a.y, z: a.z };
+                var absDx = Math.abs(dx);
+                var absDy = Math.abs(dy);
+                var now = Date.now();
+
+                if (now > shakeLockExpiry) { shakeLockDir = null; shakeAccum = 0; }
+
+                if (!shakeLockDir) {
+                    var dom = absDx >= absDy
+                        ? absDx / (absDy || 0.1)
+                        : absDy / (absDx || 0.1);
+                    if ((absDx > SHAKE_LOCK_THRESHOLD || absDy > SHAKE_LOCK_THRESHOLD) && dom >= SHAKE_DOMINANT_RATIO) {
+                        shakeLockDir = absDx >= absDy
+                            ? (dx > 0 ? "right" : "left")
+                            : (dy > 0 ? "up" : "down");
+                        shakeLockExpiry = now + SHAKE_LOCK_WINDOW;
+                        shakeAccum = 0;
+                    }
+                }
+
+                if (shakeLockDir) {
+                    shakeAccum += (shakeLockDir === "left" || shakeLockDir === "right") ? absDx : absDy;
+                    if (shakeAccum >= SHAKE_FIRE_THRESHOLD && now - lastShakeAt > SHAKE_COOLDOWN) {
+                        // Use orientation to confirm/override direction
+                        var orientDir = directionFromOrientation();
+                        var dir = orientDir || shakeLockDir;
+                        lastShakeAt = now;
+                        app.ports.onGesture.send(dir);
+                        shakeLockDir = null;
+                        shakeAccum = 0;
+                    }
+                }
+            }
+
+            function setupGestures() {
+                window.addEventListener("deviceorientation", handleOrientation);
+                window.addEventListener("devicemotion", handleMotion);
+            }
+
+            function requestAndSetup() {
+                var needsPermission =
+                    typeof DeviceMotionEvent !== "undefined" &&
+                    typeof DeviceMotionEvent.requestPermission === "function";
+                if (needsPermission) {
+                    Promise.all([
+                        DeviceMotionEvent.requestPermission(),
+                        DeviceOrientationEvent.requestPermission(),
+                    ])
+                        .then(function (states) {
+                            if (states.every(function (s) { return s === "granted"; })) {
+                                setupGestures();
+                            }
+                        })
+                        .catch(console.error);
+                } else {
+                    setupGestures();
+                }
+            }
+
+            app.ports.setGestureMode.subscribe(function (mode) {
+                currentMode = mode;
+                if (mode !== "off" && !window._gesturesSetUp) {
+                    window._gesturesSetUp = true;
+                    requestAndSetup();
+                }
+            });
 
             document.addEventListener("click", function (e) {
                 var btn = e.target.closest(".share-button");

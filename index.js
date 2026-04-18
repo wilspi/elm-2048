@@ -5228,6 +5228,7 @@ var $elm$core$Task$perform = F2(
 	});
 var $elm$browser$Browser$element = _Browser_element;
 var $author$project$Main$EmptyCell = {$: 'EmptyCell'};
+var $author$project$Main$GestureOff = {$: 'GestureOff'};
 var $author$project$Main$gridSize = 4;
 var $author$project$Main$AddTile = function (a) {
 	return {$: 'AddTile', a: a};
@@ -5501,12 +5502,12 @@ var $author$project$Main$init = function (bestScore) {
 	return _Utils_Tuple2(
 		{
 			bestScore: bestScore,
+			gestureMode: $author$project$Main$GestureOff,
 			grid: A2(
 				$elm$core$Array$repeat,
 				$author$project$Main$gridSize,
 				A2($elm$core$Array$repeat, $author$project$Main$gridSize, $author$project$Main$EmptyCell)),
 			score: 0,
-			shakeEnabled: false,
 			size: $author$project$Main$gridSize,
 			swipeCoordinate: _Utils_Tuple2($elm$core$Maybe$Nothing, $elm$core$Maybe$Nothing)
 		},
@@ -5522,6 +5523,7 @@ var $elm$json$Json$Decode$field = _Json_decodeField;
 var $elm$json$Json$Decode$string = _Json_decodeString;
 var $author$project$Main$keyDecoder = A2($elm$json$Json$Decode$field, 'key', $elm$json$Json$Decode$string);
 var $elm$core$Platform$Sub$none = $elm$core$Platform$Sub$batch(_List_Nil);
+var $author$project$Main$onGesture = _Platform_incomingPort('onGesture', $elm$json$Json$Decode$string);
 var $elm$browser$Browser$Events$Document = {$: 'Document'};
 var $elm$browser$Browser$Events$MySub = F3(
 	function (a, b, c) {
@@ -5905,7 +5907,6 @@ var $elm$browser$Browser$Events$on = F3(
 			A3($elm$browser$Browser$Events$MySub, node, name, decoder));
 	});
 var $elm$browser$Browser$Events$onKeyDown = A2($elm$browser$Browser$Events$on, $elm$browser$Browser$Events$Document, 'keydown');
-var $author$project$Main$onShake = _Platform_incomingPort('onShake', $elm$json$Json$Decode$string);
 var $author$project$Main$DownMove = {$: 'DownMove'};
 var $author$project$Main$Invalid = {$: 'Invalid'};
 var $author$project$Main$LeftMove = {$: 'LeftMove'};
@@ -5918,25 +5919,25 @@ var $author$project$Main$toDirection = function (string) {
 			return $author$project$Main$LeftMove;
 		case 'ArrowLeft':
 			return $author$project$Main$LeftMove;
-		case 'shake-left':
+		case 'left':
 			return $author$project$Main$LeftMove;
 		case 'd':
 			return $author$project$Main$RightMove;
 		case 'ArrowRight':
 			return $author$project$Main$RightMove;
-		case 'shake-right':
+		case 'right':
 			return $author$project$Main$RightMove;
 		case 'w':
 			return $author$project$Main$UpMove;
 		case 'ArrowUp':
 			return $author$project$Main$UpMove;
-		case 'shake-up':
+		case 'up':
 			return $author$project$Main$UpMove;
 		case 's':
 			return $author$project$Main$DownMove;
 		case 'ArrowDown':
 			return $author$project$Main$DownMove;
-		case 'shake-down':
+		case 'down':
 			return $author$project$Main$DownMove;
 		case 'r':
 			return $author$project$Main$Reset;
@@ -5950,7 +5951,14 @@ var $author$project$Main$subscriptions = function (model) {
 			[
 				$elm$browser$Browser$Events$onKeyDown(
 				A2($elm$json$Json$Decode$map, $author$project$Main$toDirection, $author$project$Main$keyDecoder)),
-				model.shakeEnabled ? $author$project$Main$onShake($author$project$Main$toDirection) : $elm$core$Platform$Sub$none
+				function () {
+				var _v0 = model.gestureMode;
+				if (_v0.$ === 'GestureOff') {
+					return $elm$core$Platform$Sub$none;
+				} else {
+					return $author$project$Main$onGesture($author$project$Main$toDirection);
+				}
+			}()
 			]));
 };
 var $elm$core$Basics$abs = function (n) {
@@ -6310,6 +6318,16 @@ var $author$project$Main$emptyGrid = A2(
 	$elm$core$Array$repeat,
 	0,
 	A2($elm$core$Array$repeat, 0, $author$project$Main$EmptyCell));
+var $author$project$Main$gestureModeString = function (mode) {
+	switch (mode.$) {
+		case 'GestureOff':
+			return 'off';
+		case 'OrientationOnly':
+			return 'orientation';
+		default:
+			return 'both';
+	}
+};
 var $elm$core$Tuple$mapFirst = F2(
 	function (func, _v0) {
 		var x = _v0.a;
@@ -6318,7 +6336,20 @@ var $elm$core$Tuple$mapFirst = F2(
 			func(x),
 			y);
 	});
-var $elm$core$Basics$not = _Basics_not;
+var $author$project$Main$OrientationAndShake = {$: 'OrientationAndShake'};
+var $author$project$Main$OrientationOnly = {$: 'OrientationOnly'};
+var $author$project$Main$nextGestureMode = function (mode) {
+	switch (mode.$) {
+		case 'GestureOff':
+			return $author$project$Main$OrientationOnly;
+		case 'OrientationOnly':
+			return $author$project$Main$OrientationAndShake;
+		default:
+			return $author$project$Main$GestureOff;
+	}
+};
+var $elm$json$Json$Encode$string = _Json_wrap;
+var $author$project$Main$setGestureMode = _Platform_outgoingPort('setGestureMode', $elm$json$Json$Encode$string);
 var $elm$core$Array$length = function (_v0) {
 	var len = _v0.a;
 	return len;
@@ -6789,25 +6820,33 @@ var $author$project$Main$update = F2(
 				return _Utils_Tuple2(
 					_Utils_update(
 						newModel,
-						{shakeEnabled: model.shakeEnabled}),
-					cmd);
-			case 'ToggleShake':
+						{gestureMode: model.gestureMode}),
+					$elm$core$Platform$Cmd$batch(
+						_List_fromArray(
+							[
+								cmd,
+								$author$project$Main$setGestureMode(
+								$author$project$Main$gestureModeString(model.gestureMode))
+							])));
+			case 'CycleGestureMode':
+				var newMode = $author$project$Main$nextGestureMode(model.gestureMode);
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{shakeEnabled: !model.shakeEnabled}),
-					$elm$core$Platform$Cmd$none);
+						{gestureMode: newMode}),
+					$author$project$Main$setGestureMode(
+						$author$project$Main$gestureModeString(newMode)));
 			default:
 				return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 		}
 	});
+var $author$project$Main$CycleGestureMode = {$: 'CycleGestureMode'};
 var $author$project$Main$SwipeEnd = function (a) {
 	return {$: 'SwipeEnd', a: a};
 };
 var $author$project$Main$SwipeStart = function (a) {
 	return {$: 'SwipeStart', a: a};
 };
-var $author$project$Main$ToggleShake = {$: 'ToggleShake'};
 var $elm$html$Html$a = _VirtualDom_node('a');
 var $elm$virtual_dom$VirtualDom$attribute = F2(
 	function (key, value) {
@@ -6818,7 +6857,6 @@ var $elm$virtual_dom$VirtualDom$attribute = F2(
 	});
 var $elm$html$Html$Attributes$attribute = $elm$virtual_dom$VirtualDom$attribute;
 var $elm$html$Html$button = _VirtualDom_node('button');
-var $elm$json$Json$Encode$string = _Json_wrap;
 var $elm$html$Html$Attributes$stringProperty = F2(
 	function (key, string) {
 		return A2(
@@ -6833,6 +6871,26 @@ var $elm$core$Basics$composeL = F3(
 			f(x));
 	});
 var $elm$html$Html$div = _VirtualDom_node('div');
+var $author$project$Main$gestureModeClass = function (mode) {
+	switch (mode.$) {
+		case 'GestureOff':
+			return 'shake-toggle shake-toggle--off';
+		case 'OrientationOnly':
+			return 'shake-toggle shake-toggle--on';
+		default:
+			return 'shake-toggle shake-toggle--on';
+	}
+};
+var $author$project$Main$gestureModeLabel = function (mode) {
+	switch (mode.$) {
+		case 'GestureOff':
+			return '📵 Gestures: Off';
+		case 'OrientationOnly':
+			return '📱 Orientation';
+		default:
+			return '📱🫨 Orientation + Shake';
+	}
+};
 var $elm$html$Html$h1 = _VirtualDom_node('h1');
 var $elm$core$List$any = F2(
 	function (isOkay, list) {
@@ -6855,6 +6913,7 @@ var $elm$core$List$any = F2(
 			}
 		}
 	});
+var $elm$core$Basics$not = _Basics_not;
 var $elm$core$Tuple$pair = F2(
 	function (a, b) {
 		return _Utils_Tuple2(a, b);
@@ -7223,13 +7282,13 @@ var $author$project$Main$view = function (model) {
 								_List_fromArray(
 									[
 										$elm$html$Html$Attributes$class(
-										'shake-toggle' + (model.shakeEnabled ? ' shake-toggle--on' : ' shake-toggle--off')),
-										$elm$html$Html$Events$onClick($author$project$Main$ToggleShake)
+										$author$project$Main$gestureModeClass(model.gestureMode)),
+										$elm$html$Html$Events$onClick($author$project$Main$CycleGestureMode)
 									]),
 								_List_fromArray(
 									[
 										$elm$html$Html$text(
-										model.shakeEnabled ? '🫨 Shake Gestures ON' : '🫨 Shake Gestures OFF')
+										$author$project$Main$gestureModeLabel(model.gestureMode))
 									]))
 							]))
 					])),
@@ -7309,7 +7368,7 @@ var $author$project$Main$view = function (model) {
 					]),
 				_List_fromArray(
 					[
-						$elm$html$Html$text('Use Arrow keys / WASD · Swipe · Shake to play')
+						$elm$html$Html$text('Arrow keys / WASD · Swipe · Tilt to play')
 					]))
 			]));
 };

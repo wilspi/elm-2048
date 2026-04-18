@@ -18,11 +18,20 @@ import Random
 port saveBestScore : Int -> Cmd msg
 
 
-port onShake : (String -> msg) -> Sub msg
+port setGestureMode : String -> Cmd msg
+
+
+port onGesture : (String -> msg) -> Sub msg
 
 
 
 -- MODEL
+
+
+type GestureMode
+    = GestureOff
+    | OrientationOnly
+    | OrientationAndShake
 
 
 type Cell
@@ -40,7 +49,7 @@ type alias Model =
     , swipeCoordinate : ( Maybe Float, Maybe Float )
     , score : Int
     , bestScore : Int
-    , shakeEnabled : Bool
+    , gestureMode : GestureMode
     }
 
 
@@ -63,7 +72,7 @@ init bestScore =
       , swipeCoordinate = ( Nothing, Nothing )
       , score = 0
       , bestScore = bestScore
-      , shakeEnabled = False
+      , gestureMode = GestureOff
       }
     , EmptyCell
         |> Array.repeat gridSize
@@ -74,6 +83,32 @@ init bestScore =
 
 
 -- VIEW
+
+
+gestureModeLabel : GestureMode -> String
+gestureModeLabel mode =
+    case mode of
+        GestureOff ->
+            "📵 Gestures: Off"
+
+        OrientationOnly ->
+            "📱 Orientation"
+
+        OrientationAndShake ->
+            "📱🫨 Orientation + Shake"
+
+
+gestureModeClass : GestureMode -> String
+gestureModeClass mode =
+    case mode of
+        GestureOff ->
+            "shake-toggle shake-toggle--off"
+
+        OrientationOnly ->
+            "shake-toggle shake-toggle--on"
+
+        OrientationAndShake ->
+            "shake-toggle shake-toggle--on"
 
 
 view : Model -> Html Msg
@@ -99,25 +134,10 @@ view model =
                 ]
             , div [ class "shake-row" ]
                 [ button
-                    [ class
-                        ("shake-toggle"
-                            ++ (if model.shakeEnabled then
-                                    " shake-toggle--on"
-
-                                else
-                                    " shake-toggle--off"
-                               )
-                        )
-                    , onClick ToggleShake
+                    [ class (gestureModeClass model.gestureMode)
+                    , onClick CycleGestureMode
                     ]
-                    [ text
-                        (if model.shakeEnabled then
-                            "🫨 Shake Gestures ON"
-
-                         else
-                            "🫨 Shake Gestures OFF"
-                        )
-                    ]
+                    [ text (gestureModeLabel model.gestureMode) ]
                 ]
             ]
         , div
@@ -151,7 +171,7 @@ view model =
                         []
                    )
             )
-        , div [ class "below-grid" ] [ text "Use Arrow keys / WASD · Swipe · Shake to play" ]
+        , div [ class "below-grid" ] [ text "Arrow keys / WASD · Swipe · Tilt to play" ]
         ]
 
 
@@ -183,7 +203,7 @@ type Msg
     | SwipeEnd ( Float, Float )
     | AddTile Int
     | Reset
-    | ToggleShake
+    | CycleGestureMode
     | Invalid
 
 
@@ -203,6 +223,32 @@ randomPickCell grid =
 emptyGrid : Grid
 emptyGrid =
     EmptyCell |> Array.repeat 0 |> Array.repeat 0
+
+
+gestureModeString : GestureMode -> String
+gestureModeString mode =
+    case mode of
+        GestureOff ->
+            "off"
+
+        OrientationOnly ->
+            "orientation"
+
+        OrientationAndShake ->
+            "both"
+
+
+nextGestureMode : GestureMode -> GestureMode
+nextGestureMode mode =
+    case mode of
+        GestureOff ->
+            OrientationOnly
+
+        OrientationOnly ->
+            OrientationAndShake
+
+        OrientationAndShake ->
+            GestureOff
 
 
 applyMoveToRows : (List Cell -> List Cell) -> Grid -> ( Grid, Int )
@@ -312,10 +358,18 @@ update msg model =
                 ( newModel, cmd ) =
                     init model.bestScore
             in
-            ( { newModel | shakeEnabled = model.shakeEnabled }, cmd )
+            ( { newModel | gestureMode = model.gestureMode }
+            , Cmd.batch [ cmd, setGestureMode (gestureModeString model.gestureMode) ]
+            )
 
-        ToggleShake ->
-            ( { model | shakeEnabled = not model.shakeEnabled }, Cmd.none )
+        CycleGestureMode ->
+            let
+                newMode =
+                    nextGestureMode model.gestureMode
+            in
+            ( { model | gestureMode = newMode }
+            , setGestureMode (gestureModeString newMode)
+            )
 
         Invalid ->
             ( model, Cmd.none )
@@ -531,11 +585,12 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
         [ BE.onKeyDown (Decode.map toDirection keyDecoder)
-        , if model.shakeEnabled then
-            onShake toDirection
+        , case model.gestureMode of
+            GestureOff ->
+                Sub.none
 
-          else
-            Sub.none
+            _ ->
+                onGesture toDirection
         ]
 
 
@@ -548,7 +603,7 @@ toDirection string =
         "ArrowLeft" ->
             LeftMove
 
-        "shake-left" ->
+        "left" ->
             LeftMove
 
         "d" ->
@@ -557,7 +612,7 @@ toDirection string =
         "ArrowRight" ->
             RightMove
 
-        "shake-right" ->
+        "right" ->
             RightMove
 
         "w" ->
@@ -566,7 +621,7 @@ toDirection string =
         "ArrowUp" ->
             UpMove
 
-        "shake-up" ->
+        "up" ->
             UpMove
 
         "s" ->
@@ -575,7 +630,7 @@ toDirection string =
         "ArrowDown" ->
             DownMove
 
-        "shake-down" ->
+        "down" ->
             DownMove
 
         "r" ->
