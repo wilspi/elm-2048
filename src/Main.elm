@@ -1,15 +1,24 @@
-module Main exposing (main)
+port module Main exposing (main)
 
 import Array exposing (Array)
 import Browser
 import Browser.Events as BE
-import Debug
-import Html exposing (Html, a, div, h1, p, text)
-import Html.Attributes exposing (class)
+import Html exposing (Html, a, button, div, h1, p, span, text)
+import Html.Attributes exposing (class, href, rel, target)
 import Html.Events exposing (onClick)
 import Html.Events.Extra.Touch as Touch
 import Json.Decode as Decode
 import Random
+
+
+
+-- PORTS
+
+
+port saveBestScore : Int -> Cmd msg
+
+
+port triggerShare : { score : Int, best : Int, url : String } -> Cmd msg
 
 
 
@@ -29,6 +38,8 @@ type alias Model =
     { size : Int
     , grid : Grid
     , swipeCoordinate : ( Maybe Float, Maybe Float )
+    , score : Int
+    , bestScore : Int
     }
 
 
@@ -41,14 +52,16 @@ gridSize =
     4
 
 
-init : ( Model, Cmd Msg )
-init =
+init : Int -> ( Model, Cmd Msg )
+init bestScore =
     ( { size = gridSize
       , grid =
             EmptyCell
                 |> Array.repeat gridSize
                 |> Array.repeat gridSize
       , swipeCoordinate = ( Nothing, Nothing )
+      , score = 0
+      , bestScore = bestScore
       }
     , EmptyCell
         |> Array.repeat gridSize
@@ -65,22 +78,25 @@ view : Model -> Html Msg
 view model =
     div [ class "container" ]
         [ div [ class "heading" ]
-            [ h1 [ class "title" ]
-                [ text "2048" ]
-            , div
-                [ class "scores-container" ]
-                []
+            [ h1 [ class "title" ] [ text "2048" ]
+            , div [ class "scores-container" ]
+                [ scoreBox "SCORE" model.score
+                , scoreBox "BEST" model.bestScore
+                ]
             ]
         , div [ class "above-grid" ]
-            [ p [ class "game-intro" ] [ text "Join the numbers and get to the '2048' tile!" ]
-            , a [ class "restart-button", onClick Reset ] [ text "New Game" ]
+            [ p [ class "game-intro" ] [ text "Join the numbers and get to the 2048 tile!" ]
+            , div [ class "buttons" ]
+                [ button [ class "share-button", onClick Share ] [ text "Share" ]
+                , a [ class "restart-button", onClick Reset ] [ text "New Game" ]
+                ]
             ]
         , div
             [ class "grid"
             , Touch.onStart (SwipeStart << touchCoordinates)
             , Touch.onEnd (SwipeEnd << touchCoordinates)
             ]
-            (model.grid
+            ((model.grid
                 |> Array.map
                     (\l ->
                         div [ class "row" ]
@@ -89,17 +105,32 @@ view model =
                                     (\c ->
                                         case c of
                                             Tile v ->
-                                                div [ class ("cell" ++ " tile" ++ String.fromInt v) ] [ text (String.fromInt v) ]
+                                                div [ class ("cell tile" ++ String.fromInt v) ] [ text (String.fromInt v) ]
 
                                             EmptyCell ->
-                                                div [ class "cell emptycell" ] [ text "0" ]
+                                                div [ class "cell emptycell" ] [ text "" ]
                                     )
                                 |> Array.toList
                             )
                     )
                 |> Array.toList
+             )
+                ++ (if isGameOver model.grid then
+                        [ div [ class "gameover" ] [ text "Game Over!" ] ]
+
+                    else
+                        []
+                   )
             )
-        , div [ class "below-grid" ] [ text "Use 'w', 'a', 's', 'd' to play" ]
+        , div [ class "below-grid" ] [ text "Use arrow keys or W A S D to play" ]
+        ]
+
+
+scoreBox : String -> Int -> Html Msg
+scoreBox label value =
+    div [ class "score-box" ]
+        [ span [ class "score-label" ] [ text label ]
+        , span [ class "score-value" ] [ text (String.fromInt value) ]
         ]
 
 
@@ -123,14 +154,14 @@ type Msg
     | SwipeEnd ( Float, Float )
     | AddTile Int
     | Reset
+    | Share
     | Invalid
 
 
 randomPickCell : Grid -> Cmd Msg
 randomPickCell grid =
-    -- Returns `AddTile` msg with a random number between 1 to number of available cells
     Random.generate AddTile
-        (Random.int 1
+        (Random.int 0
             ((grid
                 |> getAvailableCells
                 |> List.length
@@ -140,106 +171,100 @@ randomPickCell grid =
         )
 
 
+emptyGrid : Grid
+emptyGrid =
+    EmptyCell |> Array.repeat 0 |> Array.repeat 0
+
+
+applyMoveToRows : (List Cell -> List Cell) -> Grid -> ( Grid, Int )
+applyMoveToRows rowFn grid =
+    let
+        results =
+            grid |> Array.map (\row -> row |> Array.toList |> mergeAndFillRow rowFn)
+
+        newGrid =
+            results |> Array.map (Tuple.first >> Array.fromList)
+
+        gained =
+            results |> Array.toList |> List.map Tuple.second |> List.sum
+    in
+    ( newGrid, gained )
+
+
+commitMove : Grid -> Int -> Model -> ( Model, Cmd Msg )
+commitMove newGrid gained model =
+    if newGrid == model.grid then
+        ( model, Cmd.none )
+
+    else
+        let
+            newScore =
+                model.score + gained
+
+            newBest =
+                max model.bestScore newScore
+        in
+        ( { model | grid = newGrid, score = newScore, bestScore = newBest }
+        , Cmd.batch
+            [ randomPickCell newGrid
+            , if newBest > model.bestScore then
+                saveBestScore newBest
+
+              else
+                Cmd.none
+            ]
+        )
+
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    let
-        dummy =
-            Debug.log "message: " msg
-    in
     case msg of
         LeftMove ->
-            ( { model
-                | grid =
-                    model.grid
-                        |> Array.map
-                            (\x ->
-                                x
-                                    |> Array.toList
-                                    |> mergeAndFillRow
-                                    |> Array.fromList
-                            )
-              }
-            , model.grid |> randomPickCell
-            )
+            let
+                ( newGrid, gained ) =
+                    applyMoveToRows identity model.grid
+            in
+            commitMove newGrid gained model
 
         RightMove ->
-            ( { model
-                | grid =
-                    model.grid
-                        |> Array.map
-                            (\x ->
-                                x
-                                    |> Array.toList
-                                    |> List.reverse
-                                    |> mergeAndFillRow
-                                    |> List.reverse
-                                    |> Array.fromList
-                            )
-              }
-            , model.grid |> randomPickCell
-            )
+            let
+                ( newGrid, gained ) =
+                    applyMoveToRows List.reverse model.grid
+                        |> Tuple.mapFirst
+                            (Array.map (Array.toList >> List.reverse >> Array.fromList))
+            in
+            commitMove newGrid gained model
 
         UpMove ->
-            ( { model
-                | grid =
+            let
+                ( newGrid, gained ) =
                     model.grid
-                        |> transposeMap
-                            (EmptyCell
-                                |> Array.repeat 0
-                                |> Array.repeat 0
-                            )
-                        |> Array.map
-                            (\x ->
-                                x
-                                    |> Array.toList
-                                    |> mergeAndFillRow
-                                    |> Array.fromList
-                            )
-                        |> transposeMap
-                            (EmptyCell
-                                |> Array.repeat 0
-                                |> Array.repeat 0
-                            )
-              }
-            , model.grid |> randomPickCell
-            )
+                        |> transposeMap emptyGrid
+                        |> applyMoveToRows identity
+                        |> Tuple.mapFirst (transposeMap emptyGrid)
+            in
+            commitMove newGrid gained model
 
         DownMove ->
-            ( { model
-                | grid =
+            let
+                ( newGrid, gained ) =
                     model.grid
-                        |> transposeMap
-                            (EmptyCell
-                                |> Array.repeat 0
-                                |> Array.repeat 0
+                        |> transposeMap emptyGrid
+                        |> applyMoveToRows List.reverse
+                        |> Tuple.mapFirst
+                            (Array.map (Array.toList >> List.reverse >> Array.fromList)
+                                >> transposeMap emptyGrid
                             )
-                        |> Array.map
-                            (\x ->
-                                x
-                                    |> Array.toList
-                                    |> List.reverse
-                                    |> mergeAndFillRow
-                                    |> List.reverse
-                                    |> Array.fromList
-                            )
-                        |> transposeMap
-                            (EmptyCell
-                                |> Array.repeat 0
-                                |> Array.repeat 0
-                            )
-              }
-            , model.grid |> randomPickCell
-            )
+            in
+            commitMove newGrid gained model
 
         SwipeStart ( x, y ) ->
             ( { model | swipeCoordinate = ( Just x, Just y ) }, Cmd.none )
 
         SwipeEnd ( x, y ) ->
-            model
-                |> identifySwipeDirectionAndUpdate ( x, y )
+            model |> identifySwipeDirectionAndUpdate ( x, y )
 
         AddTile i ->
-            -- Adds a tile of `2` in the i-th available cell
             ( addTile
                 (case
                     model.grid
@@ -250,7 +275,6 @@ update msg model =
                     Just t ->
                         t
 
-                    -- Array.set handles out of range
                     Nothing ->
                         ( -1, -1 )
                 )
@@ -260,7 +284,16 @@ update msg model =
             )
 
         Reset ->
-            init
+            init model.bestScore
+
+        Share ->
+            ( model
+            , triggerShare
+                { score = model.score
+                , best = model.bestScore
+                , url = "https://dev.wilspi.com/elm-2048/"
+                }
+            )
 
         Invalid ->
             ( model, Cmd.none )
@@ -278,14 +311,14 @@ identifySwipeDirectionAndUpdate ( x2, y2 ) model =
     case initialCoordinates of
         ( Just x1, Just y1 ) ->
             if (abs (x2 - x1) > abs (y2 - y1)) && (abs (x2 - x1) > 50) then
-                if abs (x2 - x1) == (x2 - x1) then
+                if x2 > x1 then
                     update RightMove newModel
 
                 else
                     update LeftMove newModel
 
             else if abs (y2 - y1) > 50 then
-                if abs (y2 - y1) == (y2 - y1) then
+                if y2 > y1 then
                     update DownMove newModel
 
                 else
@@ -326,42 +359,52 @@ transposeForIdx idx list grid2 =
             grid2
 
 
-mergeAndFillRow : List Cell -> List Cell
-mergeAndFillRow list =
+mergeAndFillRow : (List Cell -> List Cell) -> List Cell -> ( List Cell, Int )
+mergeAndFillRow orderFn list =
     let
-        updatedRow =
-            mergeRow list
+        ( merged, gained ) =
+            list |> orderFn |> mergeCompacted
+
+        filled =
+            merged ++ List.repeat (List.length list - List.length merged) EmptyCell
     in
-    List.concat
-        (updatedRow
-            :: [ EmptyCell
-                    |> List.repeat
-                        ((list |> List.length) - (updatedRow |> List.length))
-               ]
-        )
+    ( orderFn filled, gained )
 
 
-mergeRow : List Cell -> List Cell
-mergeRow list =
-    case list of
+mergeCompacted : List Cell -> ( List Cell, Int )
+mergeCompacted list =
+    case List.filter (\c -> c /= EmptyCell) list of
         [] ->
-            []
+            ( [], 0 )
 
-        x1 :: xs ->
-            if x1 == EmptyCell then
-                mergeRow xs
+        [ x ] ->
+            ( [ x ], 0 )
+
+        x1 :: x2 :: rest ->
+            if x1 == x2 then
+                let
+                    merged =
+                        mergeCell ( x1, x2 )
+
+                    points =
+                        case merged of
+                            Tile v ->
+                                v
+
+                            EmptyCell ->
+                                0
+
+                    ( restCells, restPoints ) =
+                        mergeCompacted rest
+                in
+                ( merged :: restCells, points + restPoints )
 
             else
-                case xs of
-                    [] ->
-                        [ x1 ]
-
-                    x2 :: xs2 ->
-                        if x1 == x2 then
-                            mergeCell ( x1, x2 ) :: mergeRow xs2
-
-                        else
-                            x1 :: mergeRow (x2 :: xs2)
+                let
+                    ( restCells, restPoints ) =
+                        mergeCompacted (x2 :: rest)
+                in
+                ( x1 :: restCells, restPoints )
 
 
 
@@ -372,28 +415,50 @@ type alias Position =
     ( Int, Int )
 
 
+isGameOver : Grid -> Bool
+isGameOver grid =
+    let
+        hasEmpty =
+            grid
+                |> Array.toList
+                |> List.any (\row -> row |> Array.toList |> List.any (\c -> c == EmptyCell))
+
+        canMergeInRow row =
+            List.map2 Tuple.pair (Array.toList row) (row |> Array.toList |> List.drop 1)
+                |> List.any (\( a, b ) -> a /= EmptyCell && a == b)
+
+        canMergeHorizontally =
+            grid |> Array.toList |> List.any canMergeInRow
+
+        canMergeVertically =
+            grid
+                |> transposeMap emptyGrid
+                |> Array.toList
+                |> List.any canMergeInRow
+    in
+    not hasEmpty && not canMergeHorizontally && not canMergeVertically
+
+
 getAvailableCells : Grid -> List Position
 getAvailableCells grid =
-    List.concat
-        (grid
-            |> Array.indexedMap
-                (\i x ->
-                    x
-                        |> Array.indexedMap
-                            (\j y ->
-                                case y of
-                                    Tile t ->
-                                        { x = i, y = j, v = t }
+    grid
+        |> Array.indexedMap
+            (\i row ->
+                row
+                    |> Array.indexedMap
+                        (\j cell ->
+                            case cell of
+                                EmptyCell ->
+                                    Just ( i, j )
 
-                                    EmptyCell ->
-                                        { x = i, y = j, v = 0 }
-                            )
-                        |> Array.toList
-                )
-            |> Array.toList
-        )
-        |> List.filter (\{ x, y, v } -> v == 0)
-        |> List.map (\t -> ( t.x, t.y ))
+                                Tile _ ->
+                                    Nothing
+                        )
+                    |> Array.toList
+            )
+        |> Array.toList
+        |> List.concat
+        |> List.filterMap identity
 
 
 addTile : Position -> Int -> Model -> Model
@@ -403,12 +468,11 @@ addTile ( x, y ) value model =
             model.grid
                 |> Array.set x
                     (Array.set y
-                        (case value > 0 of
-                            True ->
-                                Tile value
+                        (if value > 0 then
+                            Tile value
 
-                            _ ->
-                                EmptyCell
+                         else
+                            EmptyCell
                         )
                         (case model.grid |> Array.get x of
                             Just r ->
@@ -421,11 +485,6 @@ addTile ( x, y ) value model =
     }
 
 
-swap : ( Cell, Cell ) -> ( Cell, Cell )
-swap ( cell1, cell2 ) =
-    ( cell2, cell1 )
-
-
 mergeCell : ( Cell, Cell ) -> Cell
 mergeCell ( cell1, cell2 ) =
     case ( cell1, cell2 ) of
@@ -435,8 +494,11 @@ mergeCell ( cell1, cell2 ) =
         ( Tile val1, EmptyCell ) ->
             Tile val1
 
-        _ ->
-            mergeCell (swap ( cell1, cell2 ))
+        ( EmptyCell, Tile val2 ) ->
+            Tile val2
+
+        ( EmptyCell, EmptyCell ) ->
+            EmptyCell
 
 
 
@@ -444,7 +506,7 @@ mergeCell ( cell1, cell2 ) =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions model =
+subscriptions _ =
     Sub.batch
         [ BE.onKeyPress (Decode.map toDirection keyDecoder)
         ]
@@ -452,10 +514,6 @@ subscriptions model =
 
 toDirection : String -> Msg
 toDirection string =
-    let
-        dummy =
-            Debug.log "input key: " string
-    in
     case string of
         "a" ->
             LeftMove
@@ -485,11 +543,11 @@ keyDecoder =
 -- MAIN
 
 
-main : Program () Model Msg
+main : Program Int Model Msg
 main =
     Browser.element
         { view = view
-        , init = \() -> init
+        , init = init
         , subscriptions = subscriptions
         , update = update
         }

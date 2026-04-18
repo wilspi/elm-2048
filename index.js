@@ -5350,16 +5350,23 @@ var $elm$core$List$append = F2(
 var $elm$core$List$concat = function (lists) {
 	return A3($elm$core$List$foldr, $elm$core$List$append, _List_Nil, lists);
 };
-var $elm$core$List$filter = F2(
-	function (isGood, list) {
+var $elm$core$List$maybeCons = F3(
+	function (f, mx, xs) {
+		var _v0 = f(mx);
+		if (_v0.$ === 'Just') {
+			var x = _v0.a;
+			return A2($elm$core$List$cons, x, xs);
+		} else {
+			return xs;
+		}
+	});
+var $elm$core$List$filterMap = F2(
+	function (f, xs) {
 		return A3(
 			$elm$core$List$foldr,
-			F2(
-				function (x, xs) {
-					return isGood(x) ? A2($elm$core$List$cons, x, xs) : xs;
-				}),
+			$elm$core$List$maybeCons(f),
 			_List_Nil,
-			list);
+			xs);
 	});
 var $elm$core$Elm$JsArray$foldl = _JsArray_foldl;
 var $elm$core$Elm$JsArray$indexedMap = _JsArray_indexedMap;
@@ -5405,39 +5412,29 @@ var $elm$core$Array$indexedMap = F2(
 	});
 var $author$project$Main$getAvailableCells = function (grid) {
 	return A2(
-		$elm$core$List$map,
-		function (t) {
-			return _Utils_Tuple2(t.x, t.y);
-		},
-		A2(
-			$elm$core$List$filter,
-			function (_v1) {
-				var x = _v1.x;
-				var y = _v1.y;
-				var v = _v1.v;
-				return !v;
-			},
-			$elm$core$List$concat(
-				$elm$core$Array$toList(
-					A2(
-						$elm$core$Array$indexedMap,
-						F2(
-							function (i, x) {
-								return $elm$core$Array$toList(
-									A2(
-										$elm$core$Array$indexedMap,
-										F2(
-											function (j, y) {
-												if (y.$ === 'Tile') {
-													var t = y.a;
-													return {v: t, x: i, y: j};
-												} else {
-													return {v: 0, x: i, y: j};
-												}
-											}),
-										x));
-							}),
-						grid)))));
+		$elm$core$List$filterMap,
+		$elm$core$Basics$identity,
+		$elm$core$List$concat(
+			$elm$core$Array$toList(
+				A2(
+					$elm$core$Array$indexedMap,
+					F2(
+						function (i, row) {
+							return $elm$core$Array$toList(
+								A2(
+									$elm$core$Array$indexedMap,
+									F2(
+										function (j, cell) {
+											if (cell.$ === 'EmptyCell') {
+												return $elm$core$Maybe$Just(
+													_Utils_Tuple2(i, j));
+											} else {
+												return $elm$core$Maybe$Nothing;
+											}
+										}),
+									row));
+						}),
+					grid))));
 };
 var $elm$core$Bitwise$and = _Bitwise_and;
 var $elm$core$Basics$negate = function (n) {
@@ -5487,7 +5484,7 @@ var $author$project$Main$randomPickCell = function (grid) {
 		$author$project$Main$AddTile,
 		A2(
 			$elm$random$Random$int,
-			1,
+			0,
 			$elm$core$List$length(
 				$author$project$Main$getAvailableCells(grid)) - 1));
 };
@@ -5500,20 +5497,25 @@ var $elm$core$Array$repeat = F2(
 				return e;
 			});
 	});
-var $author$project$Main$init = _Utils_Tuple2(
-	{
-		grid: A2(
-			$elm$core$Array$repeat,
-			$author$project$Main$gridSize,
-			A2($elm$core$Array$repeat, $author$project$Main$gridSize, $author$project$Main$EmptyCell)),
-		size: $author$project$Main$gridSize,
-		swipeCoordinate: _Utils_Tuple2($elm$core$Maybe$Nothing, $elm$core$Maybe$Nothing)
-	},
-	$author$project$Main$randomPickCell(
-		A2(
-			$elm$core$Array$repeat,
-			$author$project$Main$gridSize,
-			A2($elm$core$Array$repeat, $author$project$Main$gridSize, $author$project$Main$EmptyCell))));
+var $author$project$Main$init = function (bestScore) {
+	return _Utils_Tuple2(
+		{
+			bestScore: bestScore,
+			grid: A2(
+				$elm$core$Array$repeat,
+				$author$project$Main$gridSize,
+				A2($elm$core$Array$repeat, $author$project$Main$gridSize, $author$project$Main$EmptyCell)),
+			score: 0,
+			size: $author$project$Main$gridSize,
+			swipeCoordinate: _Utils_Tuple2($elm$core$Maybe$Nothing, $elm$core$Maybe$Nothing)
+		},
+		$author$project$Main$randomPickCell(
+			A2(
+				$elm$core$Array$repeat,
+				$author$project$Main$gridSize,
+				A2($elm$core$Array$repeat, $author$project$Main$gridSize, $author$project$Main$EmptyCell))));
+};
+var $elm$json$Json$Decode$int = _Json_decodeInt;
 var $elm$core$Platform$Sub$batch = _Platform_batch;
 var $elm$json$Json$Decode$field = _Json_decodeField;
 var $elm$json$Json$Decode$string = _Json_decodeString;
@@ -5858,24 +5860,6 @@ var $elm$browser$Browser$Events$onEffects = F3(
 				$elm$core$Task$sequence(
 					A2($elm$core$List$map, $elm$core$Process$kill, deadPids))));
 	});
-var $elm$core$List$maybeCons = F3(
-	function (f, mx, xs) {
-		var _v0 = f(mx);
-		if (_v0.$ === 'Just') {
-			var x = _v0.a;
-			return A2($elm$core$List$cons, x, xs);
-		} else {
-			return xs;
-		}
-	});
-var $elm$core$List$filterMap = F2(
-	function (f, xs) {
-		return A3(
-			$elm$core$List$foldr,
-			$elm$core$List$maybeCons(f),
-			_List_Nil,
-			xs);
-	});
 var $elm$browser$Browser$Events$onSelfMsg = F3(
 	function (router, _v0, state) {
 		var key = _v0.key;
@@ -5925,9 +5909,7 @@ var $author$project$Main$LeftMove = {$: 'LeftMove'};
 var $author$project$Main$Reset = {$: 'Reset'};
 var $author$project$Main$RightMove = {$: 'RightMove'};
 var $author$project$Main$UpMove = {$: 'UpMove'};
-var $elm$core$Debug$log = _Debug_log;
 var $author$project$Main$toDirection = function (string) {
-	var dummy = A2($elm$core$Debug$log, 'input key: ', string);
 	switch (string) {
 		case 'a':
 			return $author$project$Main$LeftMove;
@@ -5943,7 +5925,7 @@ var $author$project$Main$toDirection = function (string) {
 			return $author$project$Main$Invalid;
 	}
 };
-var $author$project$Main$subscriptions = function (model) {
+var $author$project$Main$subscriptions = function (_v0) {
 	return $elm$core$Platform$Sub$batch(
 		_List_fromArray(
 			[
@@ -6049,18 +6031,11 @@ var $author$project$Main$addTile = F3(
 					A3(
 						$elm$core$Array$set,
 						y,
+						(value > 0) ? $author$project$Main$Tile(value) : $author$project$Main$EmptyCell,
 						function () {
-							var _v1 = value > 0;
-							if (_v1) {
-								return $author$project$Main$Tile(value);
-							} else {
-								return $author$project$Main$EmptyCell;
-							}
-						}(),
-						function () {
-							var _v2 = A2($elm$core$Array$get, x, model.grid);
-							if (_v2.$ === 'Just') {
-								var r = _v2.a;
+							var _v1 = A2($elm$core$Array$get, x, model.grid);
+							if (_v1.$ === 'Just') {
+								var r = _v1.a;
 								return r;
 							} else {
 								return A2($elm$core$Array$repeat, model.size, $author$project$Main$EmptyCell);
@@ -6068,6 +6043,11 @@ var $author$project$Main$addTile = F3(
 						}()),
 					model.grid)
 			});
+	});
+var $elm$core$Basics$composeR = F3(
+	function (f, g, x) {
+		return g(
+			f(x));
 	});
 var $elm$core$Array$fromListHelp = F3(
 	function (list, nodeList, nodeListSize) {
@@ -6129,64 +6109,90 @@ var $elm$core$Array$map = F2(
 			A2($elm$core$Elm$JsArray$map, helper, tree),
 			A2($elm$core$Elm$JsArray$map, func, tail));
 	});
-var $author$project$Main$swap = function (_v0) {
+var $elm$core$List$filter = F2(
+	function (isGood, list) {
+		return A3(
+			$elm$core$List$foldr,
+			F2(
+				function (x, xs) {
+					return isGood(x) ? A2($elm$core$List$cons, x, xs) : xs;
+				}),
+			_List_Nil,
+			list);
+	});
+var $author$project$Main$mergeCell = function (_v0) {
 	var cell1 = _v0.a;
 	var cell2 = _v0.b;
-	return _Utils_Tuple2(cell2, cell1);
-};
-var $author$project$Main$mergeCell = function (_v0) {
-	mergeCell:
-	while (true) {
-		var cell1 = _v0.a;
-		var cell2 = _v0.b;
-		var _v1 = _Utils_Tuple2(cell1, cell2);
-		if (_v1.a.$ === 'Tile') {
-			if (_v1.b.$ === 'Tile') {
-				var val1 = _v1.a.a;
-				var val2 = _v1.b.a;
-				return $author$project$Main$Tile(val1 + val2);
-			} else {
-				var val1 = _v1.a.a;
-				var _v2 = _v1.b;
-				return $author$project$Main$Tile(val1);
-			}
+	var _v1 = _Utils_Tuple2(cell1, cell2);
+	if (_v1.a.$ === 'Tile') {
+		if (_v1.b.$ === 'Tile') {
+			var val1 = _v1.a.a;
+			var val2 = _v1.b.a;
+			return $author$project$Main$Tile(val1 + val2);
 		} else {
-			var $temp$_v0 = $author$project$Main$swap(
-				_Utils_Tuple2(cell1, cell2));
-			_v0 = $temp$_v0;
-			continue mergeCell;
+			var val1 = _v1.a.a;
+			var _v2 = _v1.b;
+			return $author$project$Main$Tile(val1);
+		}
+	} else {
+		if (_v1.b.$ === 'Tile') {
+			var _v3 = _v1.a;
+			var val2 = _v1.b.a;
+			return $author$project$Main$Tile(val2);
+		} else {
+			var _v4 = _v1.a;
+			var _v5 = _v1.b;
+			return $author$project$Main$EmptyCell;
 		}
 	}
 };
-var $author$project$Main$mergeRow = function (list) {
-	mergeRow:
-	while (true) {
-		if (!list.b) {
-			return _List_Nil;
+var $elm$core$Basics$neq = _Utils_notEqual;
+var $author$project$Main$mergeCompacted = function (list) {
+	var _v0 = A2(
+		$elm$core$List$filter,
+		function (c) {
+			return !_Utils_eq(c, $author$project$Main$EmptyCell);
+		},
+		list);
+	if (!_v0.b) {
+		return _Utils_Tuple2(_List_Nil, 0);
+	} else {
+		if (!_v0.b.b) {
+			var x = _v0.a;
+			return _Utils_Tuple2(
+				_List_fromArray(
+					[x]),
+				0);
 		} else {
-			var x1 = list.a;
-			var xs = list.b;
-			if (_Utils_eq(x1, $author$project$Main$EmptyCell)) {
-				var $temp$list = xs;
-				list = $temp$list;
-				continue mergeRow;
+			var x1 = _v0.a;
+			var _v1 = _v0.b;
+			var x2 = _v1.a;
+			var rest = _v1.b;
+			if (_Utils_eq(x1, x2)) {
+				var merged = $author$project$Main$mergeCell(
+					_Utils_Tuple2(x1, x2));
+				var points = function () {
+					if (merged.$ === 'Tile') {
+						var v = merged.a;
+						return v;
+					} else {
+						return 0;
+					}
+				}();
+				var _v2 = $author$project$Main$mergeCompacted(rest);
+				var restCells = _v2.a;
+				var restPoints = _v2.b;
+				return _Utils_Tuple2(
+					A2($elm$core$List$cons, merged, restCells),
+					points + restPoints);
 			} else {
-				if (!xs.b) {
-					return _List_fromArray(
-						[x1]);
-				} else {
-					var x2 = xs.a;
-					var xs2 = xs.b;
-					return _Utils_eq(x1, x2) ? A2(
-						$elm$core$List$cons,
-						$author$project$Main$mergeCell(
-							_Utils_Tuple2(x1, x2)),
-						$author$project$Main$mergeRow(xs2)) : A2(
-						$elm$core$List$cons,
-						x1,
-						$author$project$Main$mergeRow(
-							A2($elm$core$List$cons, x2, xs2)));
-				}
+				var _v4 = $author$project$Main$mergeCompacted(
+					A2($elm$core$List$cons, x2, rest));
+				var restCells = _v4.a;
+				var restPoints = _v4.b;
+				return _Utils_Tuple2(
+					A2($elm$core$List$cons, x1, restCells),
+					restPoints);
 			}
 		}
 	}
@@ -6212,22 +6218,86 @@ var $elm$core$List$repeat = F2(
 	function (n, value) {
 		return A3($elm$core$List$repeatHelp, _List_Nil, n, value);
 	});
-var $author$project$Main$mergeAndFillRow = function (list) {
-	var updatedRow = $author$project$Main$mergeRow(list);
-	return $elm$core$List$concat(
-		A2(
-			$elm$core$List$cons,
-			updatedRow,
-			_List_fromArray(
-				[
-					A2(
-					$elm$core$List$repeat,
-					$elm$core$List$length(list) - $elm$core$List$length(updatedRow),
-					$author$project$Main$EmptyCell)
-				])));
+var $author$project$Main$mergeAndFillRow = F2(
+	function (orderFn, list) {
+		var _v0 = $author$project$Main$mergeCompacted(
+			orderFn(list));
+		var merged = _v0.a;
+		var gained = _v0.b;
+		var filled = _Utils_ap(
+			merged,
+			A2(
+				$elm$core$List$repeat,
+				$elm$core$List$length(list) - $elm$core$List$length(merged),
+				$author$project$Main$EmptyCell));
+		return _Utils_Tuple2(
+			orderFn(filled),
+			gained);
+	});
+var $elm$core$Tuple$second = function (_v0) {
+	var y = _v0.b;
+	return y;
 };
+var $elm$core$List$sum = function (numbers) {
+	return A3($elm$core$List$foldl, $elm$core$Basics$add, 0, numbers);
+};
+var $author$project$Main$applyMoveToRows = F2(
+	function (rowFn, grid) {
+		var results = A2(
+			$elm$core$Array$map,
+			function (row) {
+				return A2(
+					$author$project$Main$mergeAndFillRow,
+					rowFn,
+					$elm$core$Array$toList(row));
+			},
+			grid);
+		var newGrid = A2(
+			$elm$core$Array$map,
+			A2($elm$core$Basics$composeR, $elm$core$Tuple$first, $elm$core$Array$fromList),
+			results);
+		var gained = $elm$core$List$sum(
+			A2(
+				$elm$core$List$map,
+				$elm$core$Tuple$second,
+				$elm$core$Array$toList(results)));
+		return _Utils_Tuple2(newGrid, gained);
+	});
 var $elm$core$Platform$Cmd$batch = _Platform_batch;
 var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
+var $elm$json$Json$Encode$int = _Json_wrap;
+var $author$project$Main$saveBestScore = _Platform_outgoingPort('saveBestScore', $elm$json$Json$Encode$int);
+var $author$project$Main$commitMove = F3(
+	function (newGrid, gained, model) {
+		if (_Utils_eq(newGrid, model.grid)) {
+			return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+		} else {
+			var newScore = model.score + gained;
+			var newBest = A2($elm$core$Basics$max, model.bestScore, newScore);
+			return _Utils_Tuple2(
+				_Utils_update(
+					model,
+					{bestScore: newBest, grid: newGrid, score: newScore}),
+				$elm$core$Platform$Cmd$batch(
+					_List_fromArray(
+						[
+							$author$project$Main$randomPickCell(newGrid),
+							(_Utils_cmp(newBest, model.bestScore) > 0) ? $author$project$Main$saveBestScore(newBest) : $elm$core$Platform$Cmd$none
+						])));
+		}
+	});
+var $author$project$Main$emptyGrid = A2(
+	$elm$core$Array$repeat,
+	0,
+	A2($elm$core$Array$repeat, 0, $author$project$Main$EmptyCell));
+var $elm$core$Tuple$mapFirst = F2(
+	function (func, _v0) {
+		var x = _v0.a;
+		var y = _v0.b;
+		return _Utils_Tuple2(
+			func(x),
+			y);
+	});
 var $elm$core$Array$length = function (_v0) {
 	var len = _v0.a;
 	return len;
@@ -6594,10 +6664,41 @@ var $author$project$Main$transposeMap = F2(
 			}
 		}
 	});
+var $elm$json$Json$Encode$object = function (pairs) {
+	return _Json_wrap(
+		A3(
+			$elm$core$List$foldl,
+			F2(
+				function (_v0, obj) {
+					var k = _v0.a;
+					var v = _v0.b;
+					return A3(_Json_addField, k, v, obj);
+				}),
+			_Json_emptyObject(_Utils_Tuple0),
+			pairs));
+};
+var $elm$json$Json$Encode$string = _Json_wrap;
+var $author$project$Main$triggerShare = _Platform_outgoingPort(
+	'triggerShare',
+	function ($) {
+		return $elm$json$Json$Encode$object(
+			_List_fromArray(
+				[
+					_Utils_Tuple2(
+					'best',
+					$elm$json$Json$Encode$int($.best)),
+					_Utils_Tuple2(
+					'score',
+					$elm$json$Json$Encode$int($.score)),
+					_Utils_Tuple2(
+					'url',
+					$elm$json$Json$Encode$string($.url))
+				]));
+	});
 var $author$project$Main$identifySwipeDirectionAndUpdate = F2(
-	function (_v4, model) {
-		var x2 = _v4.a;
-		var y2 = _v4.b;
+	function (_v8, model) {
+		var x2 = _v8.a;
+		var y2 = _v8.b;
 		var newModel = _Utils_update(
 			model,
 			{
@@ -6609,111 +6710,64 @@ var $author$project$Main$identifySwipeDirectionAndUpdate = F2(
 			var y1 = initialCoordinates.b.a;
 			return ((_Utils_cmp(
 				$elm$core$Basics$abs(x2 - x1),
-				$elm$core$Basics$abs(y2 - y1)) > 0) && ($elm$core$Basics$abs(x2 - x1) > 50)) ? (_Utils_eq(
-				$elm$core$Basics$abs(x2 - x1),
-				x2 - x1) ? A2($author$project$Main$update, $author$project$Main$RightMove, newModel) : A2($author$project$Main$update, $author$project$Main$LeftMove, newModel)) : (($elm$core$Basics$abs(y2 - y1) > 50) ? (_Utils_eq(
-				$elm$core$Basics$abs(y2 - y1),
-				y2 - y1) ? A2($author$project$Main$update, $author$project$Main$DownMove, newModel) : A2($author$project$Main$update, $author$project$Main$UpMove, newModel)) : _Utils_Tuple2(newModel, $elm$core$Platform$Cmd$none));
+				$elm$core$Basics$abs(y2 - y1)) > 0) && ($elm$core$Basics$abs(x2 - x1) > 50)) ? ((_Utils_cmp(x2, x1) > 0) ? A2($author$project$Main$update, $author$project$Main$RightMove, newModel) : A2($author$project$Main$update, $author$project$Main$LeftMove, newModel)) : (($elm$core$Basics$abs(y2 - y1) > 50) ? ((_Utils_cmp(y2, y1) > 0) ? A2($author$project$Main$update, $author$project$Main$DownMove, newModel) : A2($author$project$Main$update, $author$project$Main$UpMove, newModel)) : _Utils_Tuple2(newModel, $elm$core$Platform$Cmd$none));
 		} else {
 			return _Utils_Tuple2(newModel, $elm$core$Platform$Cmd$none);
 		}
 	});
 var $author$project$Main$update = F2(
 	function (msg, model) {
-		var dummy = A2($elm$core$Debug$log, 'message: ', msg);
 		switch (msg.$) {
 			case 'LeftMove':
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{
-							grid: A2(
-								$elm$core$Array$map,
-								function (x) {
-									return $elm$core$Array$fromList(
-										$author$project$Main$mergeAndFillRow(
-											$elm$core$Array$toList(x)));
-								},
-								model.grid)
-						}),
-					$author$project$Main$randomPickCell(model.grid));
+				var _v1 = A2($author$project$Main$applyMoveToRows, $elm$core$Basics$identity, model.grid);
+				var newGrid = _v1.a;
+				var gained = _v1.b;
+				return A3($author$project$Main$commitMove, newGrid, gained, model);
 			case 'RightMove':
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{
-							grid: A2(
-								$elm$core$Array$map,
-								function (x) {
-									return $elm$core$Array$fromList(
-										$elm$core$List$reverse(
-											$author$project$Main$mergeAndFillRow(
-												$elm$core$List$reverse(
-													$elm$core$Array$toList(x)))));
-								},
-								model.grid)
-						}),
-					$author$project$Main$randomPickCell(model.grid));
+				var _v2 = A2(
+					$elm$core$Tuple$mapFirst,
+					$elm$core$Array$map(
+						A2(
+							$elm$core$Basics$composeR,
+							$elm$core$Array$toList,
+							A2($elm$core$Basics$composeR, $elm$core$List$reverse, $elm$core$Array$fromList))),
+					A2($author$project$Main$applyMoveToRows, $elm$core$List$reverse, model.grid));
+				var newGrid = _v2.a;
+				var gained = _v2.b;
+				return A3($author$project$Main$commitMove, newGrid, gained, model);
 			case 'UpMove':
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{
-							grid: A2(
-								$author$project$Main$transposeMap,
-								A2(
-									$elm$core$Array$repeat,
-									0,
-									A2($elm$core$Array$repeat, 0, $author$project$Main$EmptyCell)),
-								A2(
-									$elm$core$Array$map,
-									function (x) {
-										return $elm$core$Array$fromList(
-											$author$project$Main$mergeAndFillRow(
-												$elm$core$Array$toList(x)));
-									},
-									A2(
-										$author$project$Main$transposeMap,
-										A2(
-											$elm$core$Array$repeat,
-											0,
-											A2($elm$core$Array$repeat, 0, $author$project$Main$EmptyCell)),
-										model.grid)))
-						}),
-					$author$project$Main$randomPickCell(model.grid));
+				var _v3 = A2(
+					$elm$core$Tuple$mapFirst,
+					$author$project$Main$transposeMap($author$project$Main$emptyGrid),
+					A2(
+						$author$project$Main$applyMoveToRows,
+						$elm$core$Basics$identity,
+						A2($author$project$Main$transposeMap, $author$project$Main$emptyGrid, model.grid)));
+				var newGrid = _v3.a;
+				var gained = _v3.b;
+				return A3($author$project$Main$commitMove, newGrid, gained, model);
 			case 'DownMove':
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{
-							grid: A2(
-								$author$project$Main$transposeMap,
-								A2(
-									$elm$core$Array$repeat,
-									0,
-									A2($elm$core$Array$repeat, 0, $author$project$Main$EmptyCell)),
-								A2(
-									$elm$core$Array$map,
-									function (x) {
-										return $elm$core$Array$fromList(
-											$elm$core$List$reverse(
-												$author$project$Main$mergeAndFillRow(
-													$elm$core$List$reverse(
-														$elm$core$Array$toList(x)))));
-									},
-									A2(
-										$author$project$Main$transposeMap,
-										A2(
-											$elm$core$Array$repeat,
-											0,
-											A2($elm$core$Array$repeat, 0, $author$project$Main$EmptyCell)),
-										model.grid)))
-						}),
-					$author$project$Main$randomPickCell(model.grid));
+				var _v4 = A2(
+					$elm$core$Tuple$mapFirst,
+					A2(
+						$elm$core$Basics$composeR,
+						$elm$core$Array$map(
+							A2(
+								$elm$core$Basics$composeR,
+								$elm$core$Array$toList,
+								A2($elm$core$Basics$composeR, $elm$core$List$reverse, $elm$core$Array$fromList))),
+						$author$project$Main$transposeMap($author$project$Main$emptyGrid)),
+					A2(
+						$author$project$Main$applyMoveToRows,
+						$elm$core$List$reverse,
+						A2($author$project$Main$transposeMap, $author$project$Main$emptyGrid, model.grid)));
+				var newGrid = _v4.a;
+				var gained = _v4.b;
+				return A3($author$project$Main$commitMove, newGrid, gained, model);
 			case 'SwipeStart':
-				var _v1 = msg.a;
-				var x = _v1.a;
-				var y = _v1.b;
+				var _v5 = msg.a;
+				var x = _v5.a;
+				var y = _v5.b;
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
@@ -6724,9 +6778,9 @@ var $author$project$Main$update = F2(
 						}),
 					$elm$core$Platform$Cmd$none);
 			case 'SwipeEnd':
-				var _v2 = msg.a;
-				var x = _v2.a;
-				var y = _v2.b;
+				var _v6 = msg.a;
+				var x = _v6.a;
+				var y = _v6.b;
 				return A2(
 					$author$project$Main$identifySwipeDirectionAndUpdate,
 					_Utils_Tuple2(x, y),
@@ -6737,13 +6791,13 @@ var $author$project$Main$update = F2(
 					A3(
 						$author$project$Main$addTile,
 						function () {
-							var _v3 = A2(
+							var _v7 = A2(
 								$elm$core$Array$get,
 								i,
 								$elm$core$Array$fromList(
 									$author$project$Main$getAvailableCells(model.grid)));
-							if (_v3.$ === 'Just') {
-								var t = _v3.a;
+							if (_v7.$ === 'Just') {
+								var t = _v7.a;
 								return t;
 							} else {
 								return _Utils_Tuple2(-1, -1);
@@ -6753,11 +6807,17 @@ var $author$project$Main$update = F2(
 						model),
 					$elm$core$Platform$Cmd$none);
 			case 'Reset':
-				return $author$project$Main$init;
+				return $author$project$Main$init(model.bestScore);
+			case 'Share':
+				return _Utils_Tuple2(
+					model,
+					$author$project$Main$triggerShare(
+						{best: model.bestScore, score: model.score, url: 'https://dev.wilspi.com/elm-2048/'}));
 			default:
 				return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 		}
 	});
+var $author$project$Main$Share = {$: 'Share'};
 var $author$project$Main$SwipeEnd = function (a) {
 	return {$: 'SwipeEnd', a: a};
 };
@@ -6765,7 +6825,7 @@ var $author$project$Main$SwipeStart = function (a) {
 	return {$: 'SwipeStart', a: a};
 };
 var $elm$html$Html$a = _VirtualDom_node('a');
-var $elm$json$Json$Encode$string = _Json_wrap;
+var $elm$html$Html$button = _VirtualDom_node('button');
 var $elm$html$Html$Attributes$stringProperty = F2(
 	function (key, string) {
 		return A2(
@@ -6781,6 +6841,72 @@ var $elm$core$Basics$composeL = F3(
 	});
 var $elm$html$Html$div = _VirtualDom_node('div');
 var $elm$html$Html$h1 = _VirtualDom_node('h1');
+var $elm$core$List$any = F2(
+	function (isOkay, list) {
+		any:
+		while (true) {
+			if (!list.b) {
+				return false;
+			} else {
+				var x = list.a;
+				var xs = list.b;
+				if (isOkay(x)) {
+					return true;
+				} else {
+					var $temp$isOkay = isOkay,
+						$temp$list = xs;
+					isOkay = $temp$isOkay;
+					list = $temp$list;
+					continue any;
+				}
+			}
+		}
+	});
+var $elm$core$Basics$not = _Basics_not;
+var $elm$core$Tuple$pair = F2(
+	function (a, b) {
+		return _Utils_Tuple2(a, b);
+	});
+var $author$project$Main$isGameOver = function (grid) {
+	var hasEmpty = A2(
+		$elm$core$List$any,
+		function (row) {
+			return A2(
+				$elm$core$List$any,
+				function (c) {
+					return _Utils_eq(c, $author$project$Main$EmptyCell);
+				},
+				$elm$core$Array$toList(row));
+		},
+		$elm$core$Array$toList(grid));
+	var canMergeInRow = function (row) {
+		return A2(
+			$elm$core$List$any,
+			function (_v0) {
+				var a = _v0.a;
+				var b = _v0.b;
+				return (!_Utils_eq(a, $author$project$Main$EmptyCell)) && _Utils_eq(a, b);
+			},
+			A3(
+				$elm$core$List$map2,
+				$elm$core$Tuple$pair,
+				$elm$core$Array$toList(row),
+				A2(
+					$elm$core$List$drop,
+					1,
+					$elm$core$Array$toList(row))));
+	};
+	var canMergeVertically = A2(
+		$elm$core$List$any,
+		canMergeInRow,
+		$elm$core$Array$toList(
+			A2($author$project$Main$transposeMap, $author$project$Main$emptyGrid, grid)));
+	var canMergeHorizontally = A2(
+		$elm$core$List$any,
+		canMergeInRow,
+		$elm$core$Array$toList(grid));
+	return (!hasEmpty) && ((!canMergeHorizontally) && (!canMergeVertically));
+};
 var $elm$virtual_dom$VirtualDom$Normal = function (a) {
 	return {$: 'Normal', a: a};
 };
@@ -6839,7 +6965,6 @@ var $mpizenberg$elm_pointer_events$Internal$Decode$clientPos = A3(
 		}),
 	A2($elm$json$Json$Decode$field, 'clientX', $elm$json$Json$Decode$float),
 	A2($elm$json$Json$Decode$field, 'clientY', $elm$json$Json$Decode$float));
-var $elm$json$Json$Decode$int = _Json_decodeInt;
 var $mpizenberg$elm_pointer_events$Internal$Decode$pagePos = A3(
 	$elm$json$Json$Decode$map2,
 	F2(
@@ -6923,8 +7048,42 @@ var $mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$onWithOptions = F3(
 var $mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$onEnd = A2($mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$onWithOptions, 'touchend', $mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$defaultOptions);
 var $mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$onStart = A2($mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$onWithOptions, 'touchstart', $mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$defaultOptions);
 var $elm$html$Html$p = _VirtualDom_node('p');
+var $elm$html$Html$span = _VirtualDom_node('span');
 var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
+var $author$project$Main$scoreBox = F2(
+	function (label, value) {
+		return A2(
+			$elm$html$Html$div,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$class('score-box')
+				]),
+			_List_fromArray(
+				[
+					A2(
+					$elm$html$Html$span,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('score-label')
+						]),
+					_List_fromArray(
+						[
+							$elm$html$Html$text(label)
+						])),
+					A2(
+					$elm$html$Html$span,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('score-value')
+						]),
+					_List_fromArray(
+						[
+							$elm$html$Html$text(
+							$elm$core$String$fromInt(value))
+						]))
+				]));
+	});
 var $elm$core$List$head = function (list) {
 	if (list.b) {
 		var x = list.a;
@@ -6997,7 +7156,11 @@ var $author$project$Main$view = function (model) {
 							[
 								$elm$html$Html$Attributes$class('scores-container')
 							]),
-						_List_Nil)
+						_List_fromArray(
+							[
+								A2($author$project$Main$scoreBox, 'SCORE', model.score),
+								A2($author$project$Main$scoreBox, 'BEST', model.bestScore)
+							]))
 					])),
 				A2(
 				$elm$html$Html$div,
@@ -7015,18 +7178,38 @@ var $author$project$Main$view = function (model) {
 							]),
 						_List_fromArray(
 							[
-								$elm$html$Html$text('Join the numbers and get to the \'2048\' tile!')
+								$elm$html$Html$text('Join the numbers and get to the 2048 tile!')
 							])),
 						A2(
-						$elm$html$Html$a,
+						$elm$html$Html$div,
 						_List_fromArray(
 							[
-								$elm$html$Html$Attributes$class('restart-button'),
-								$elm$html$Html$Events$onClick($author$project$Main$Reset)
+								$elm$html$Html$Attributes$class('buttons')
 							]),
 						_List_fromArray(
 							[
-								$elm$html$Html$text('New Game')
+								A2(
+								$elm$html$Html$button,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('share-button'),
+										$elm$html$Html$Events$onClick($author$project$Main$Share)
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Share')
+									])),
+								A2(
+								$elm$html$Html$a,
+								_List_fromArray(
+									[
+										$elm$html$Html$Attributes$class('restart-button'),
+										$elm$html$Html$Events$onClick($author$project$Main$Reset)
+									]),
+								_List_fromArray(
+									[
+										$elm$html$Html$text('New Game')
+									]))
 							]))
 					])),
 				A2(
@@ -7039,50 +7222,64 @@ var $author$project$Main$view = function (model) {
 						$mpizenberg$elm_pointer_events$Html$Events$Extra$Touch$onEnd(
 						A2($elm$core$Basics$composeL, $author$project$Main$SwipeEnd, $author$project$Main$touchCoordinates))
 					]),
-				$elm$core$Array$toList(
-					A2(
-						$elm$core$Array$map,
-						function (l) {
-							return A2(
-								$elm$html$Html$div,
-								_List_fromArray(
-									[
-										$elm$html$Html$Attributes$class('row')
-									]),
-								$elm$core$Array$toList(
-									A2(
-										$elm$core$Array$map,
-										function (c) {
-											if (c.$ === 'Tile') {
-												var v = c.a;
-												return A2(
-													$elm$html$Html$div,
-													_List_fromArray(
-														[
-															$elm$html$Html$Attributes$class(
-															'cell' + (' tile' + $elm$core$String$fromInt(v)))
-														]),
-													_List_fromArray(
-														[
-															$elm$html$Html$text(
-															$elm$core$String$fromInt(v))
-														]));
-											} else {
-												return A2(
-													$elm$html$Html$div,
-													_List_fromArray(
-														[
-															$elm$html$Html$Attributes$class('cell emptycell')
-														]),
-													_List_fromArray(
-														[
-															$elm$html$Html$text('0')
-														]));
-											}
-										},
-										l)));
-						},
-						model.grid))),
+				_Utils_ap(
+					$elm$core$Array$toList(
+						A2(
+							$elm$core$Array$map,
+							function (l) {
+								return A2(
+									$elm$html$Html$div,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('row')
+										]),
+									$elm$core$Array$toList(
+										A2(
+											$elm$core$Array$map,
+											function (c) {
+												if (c.$ === 'Tile') {
+													var v = c.a;
+													return A2(
+														$elm$html$Html$div,
+														_List_fromArray(
+															[
+																$elm$html$Html$Attributes$class(
+																'cell tile' + $elm$core$String$fromInt(v))
+															]),
+														_List_fromArray(
+															[
+																$elm$html$Html$text(
+																$elm$core$String$fromInt(v))
+															]));
+												} else {
+													return A2(
+														$elm$html$Html$div,
+														_List_fromArray(
+															[
+																$elm$html$Html$Attributes$class('cell emptycell')
+															]),
+														_List_fromArray(
+															[
+																$elm$html$Html$text('')
+															]));
+												}
+											},
+											l)));
+							},
+							model.grid)),
+					$author$project$Main$isGameOver(model.grid) ? _List_fromArray(
+						[
+							A2(
+							$elm$html$Html$div,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$class('gameover')
+								]),
+							_List_fromArray(
+								[
+									$elm$html$Html$text('Game Over!')
+								]))
+						]) : _List_Nil)),
 				A2(
 				$elm$html$Html$div,
 				_List_fromArray(
@@ -7091,18 +7288,10 @@ var $author$project$Main$view = function (model) {
 					]),
 				_List_fromArray(
 					[
-						$elm$html$Html$text('Use \'w\', \'a\', \'s\', \'d\' to play')
+						$elm$html$Html$text('Use arrow keys or W A S D to play')
 					]))
 			]));
 };
 var $author$project$Main$main = $elm$browser$Browser$element(
-	{
-		init: function (_v0) {
-			return $author$project$Main$init;
-		},
-		subscriptions: $author$project$Main$subscriptions,
-		update: $author$project$Main$update,
-		view: $author$project$Main$view
-	});
-_Platform_export({'Main':{'init':$author$project$Main$main(
-	$elm$json$Json$Decode$succeed(_Utils_Tuple0))(0)}});}(this));
+	{init: $author$project$Main$init, subscriptions: $author$project$Main$subscriptions, update: $author$project$Main$update, view: $author$project$Main$view});
+_Platform_export({'Main':{'init':$author$project$Main$main($elm$json$Json$Decode$int)(0)}});}(this));

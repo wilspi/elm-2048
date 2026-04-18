@@ -1,20 +1,113 @@
-<!DOCTYPE HTML>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>2048 | GAME</title>
-  <meta name="author" content="wilspi"/>
-  <link rel="stylesheet" href="./src/styles/main.css">
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <script src="./index.js"></script>
-</head>
+        <!-- Primary -->
+        <title>2048 - Game by wilspi</title>
+        <meta
+            name="description"
+            content="Join the numbers and get to the 2048 tile! A clean, fast implementation of the classic 2048 puzzle game."
+        />
+        <meta name="author" content="wilspi" />
+        <meta
+            name="keywords"
+            content="2048, puzzle game, number game, elm, wilspi"
+        />
+        <link rel="canonical" href="https://wilspi.com/elm-2048/" />
 
-<body>
-    <div id="root"></div>
-    <!--<div>Made with ❤ by <a href="https://github.com/wilspi" >wilspi</a>️</div>-->
-    <script>
-      var mountNode = document.getElementById('root');
-      var app = Elm.Main.init({node: mountNode});
-    </script>
-</body>
+        <!-- Open Graph (WhatsApp, Facebook, LinkedIn, iMessage) -->
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://dev.wilspi.com/elm-2048/" />
+        <meta property="og:title" content="2048 - Game by wilspi" />
+        <meta
+            property="og:description"
+            content="Join the numbers and get to the 2048 tile! A clean, fast implementation of the classic 2048 puzzle game."
+        />
+        <meta
+            property="og:image"
+            content="https://assets.wilspi.com/elm-2048-preview.png"
+        />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:site_name" content="wilspi" />
+
+        <!-- Twitter / X Card -->
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:site" content="@wilspi" />
+        <meta name="twitter:creator" content="@wilspi" />
+        <meta name="twitter:title" content="2048 - Game by wilspi" />
+        <meta
+            name="twitter:description"
+            content="Join the numbers and get to the 2048 tile! A clean, fast implementation of the classic 2048 puzzle game."
+        />
+        <meta
+            name="twitter:image"
+            content="https://assets.wilspi.com/elm-2048-preview.png"
+        />
+
+        <!-- Structured data -->
+        <script type="application/ld+json">
+            {
+                "@context": "https://schema.org",
+                "@type": "VideoGame",
+                "name": "2048",
+                "description": "Join the numbers and get to the 2048 tile!",
+                "url": "https://dev.wilspi.com/elm-2048/",
+                "author": {
+                    "@type": "Person",
+                    "name": "wilspi",
+                    "url": "https://wilspi.com"
+                },
+                "applicationCategory": "Game",
+                "genre": "Puzzle",
+                "playMode": "SinglePlayer",
+                "operatingSystem": "Any"
+            }
+        </script>
+
+        <link rel="stylesheet" href="./src/styles/main.css" />
+        <script src="./index.js"></script>
+    </head>
+
+    <body>
+        <div id="root"></div>
+        <div>Made with ❤ by <a href="https://wilspi.com">wilspi</a>️</div>
+        <script>
+            var mountNode = document.getElementById("root");
+            var bestScore = parseInt(
+                localStorage.getItem("2048-best-score") || "0",
+                10,
+            );
+            var app = Elm.Main.init({ node: mountNode, flags: bestScore });
+
+            app.ports.saveBestScore.subscribe(function (score) {
+                localStorage.setItem("2048-best-score", score);
+            });
+
+            app.ports.triggerShare.subscribe(function (data) {
+                var text =
+                    "\n🎮 2048\n" +
+                    "My Score: " +
+                    data.score +
+                    " (Best: " +
+                    data.best +
+                    ")\n" +
+                    "Can you beat me?";
+                if (navigator.share) {
+                    navigator.share({
+                        title: "2048",
+                        text: text,
+                        url: data.url,
+                    });
+                } else {
+                    var twitterUrl =
+                        "https://twitter.com/intent/tweet?text=" +
+                        encodeURIComponent(text + " " + data.url);
+                    window.open(twitterUrl, "_blank", "noopener");
+                }
+            });
+        </script>
+    </body>
 </html>
