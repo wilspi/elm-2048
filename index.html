@@ -86,54 +86,46 @@
                 localStorage.setItem("2048-best-score", score);
             });
 
-            // Gesture state
+            // Shared state
             var currentMode = "off";
-            var currentGamma = 0; // left/right tilt
-            var currentBeta = 0;  // forward/back tilt
-            var orientationFired = false;
-            var TILT_THRESHOLD = 28;
-            var NEUTRAL_ZONE = 12;
+            var currentGamma = 0; // left/right tilt (-90 to 90)
+            var currentBeta = 0;  // upright = ~90, normalize to 0
 
-            // Shake state
+            // Orientation-only state
+            var TILT_THRESHOLD = 25;      // degrees to trigger
+            var ORIENTATION_INTERVAL = 400; // ms between repeated moves while tilted
+            var lastOrientationMoveAt = 0;
+
+            // Shake state (for "both" mode)
             var lastAccel = { x: 0, y: 0, z: 0 };
             var lastShakeAt = 0;
-            var shakeAccum = 0;
-            var shakeLockDir = null;
-            var shakeLockExpiry = 0;
-            var SHAKE_LOCK_THRESHOLD = 4;
-            var SHAKE_FIRE_THRESHOLD = 28;
-            var SHAKE_DOMINANT_RATIO = 1.8;
-            var SHAKE_COOLDOWN = 900;
-            var SHAKE_LOCK_WINDOW = 400;
+            var SHAKE_THRESHOLD = 20; // total acceleration delta to count as shake
+            var SHAKE_COOLDOWN = 800;
 
+            // Read direction purely from current tilt angles
             function directionFromOrientation() {
-                var g = currentGamma;
-                var b = currentBeta - 90; // normalize: 0 = upright
-                var absG = Math.abs(g);
-                var absB = Math.abs(b);
-                if (absG < 10 && absB < 10) return null;
-                if (absG >= absB) return g > 0 ? "right" : "left";
-                return b > 0 ? "down" : "up";
+                var g = currentGamma;           // left(-) / right(+)
+                var b = currentBeta - 90;       // upright=0, forward(+) / back(-)
+                if (Math.abs(g) >= Math.abs(b)) {
+                    return g > 0 ? "right" : "left";
+                } else {
+                    return b > 0 ? "down" : "up";
+                }
             }
 
             function handleOrientation(e) {
                 currentGamma = e.gamma || 0;
-                currentBeta = e.beta || 0;
-                if (currentMode === "off") return;
+                currentBeta  = e.beta  || 0;
+                if (currentMode !== "orientation") return;
 
                 var absG = Math.abs(currentGamma);
                 var absB = Math.abs(currentBeta - 90);
+                var now = Date.now();
 
-                if (!orientationFired) {
-                    if (absG > TILT_THRESHOLD || absB > TILT_THRESHOLD) {
-                        var dir = directionFromOrientation();
-                        if (dir) {
-                            orientationFired = true;
-                            app.ports.onGesture.send(dir);
-                        }
-                    }
-                } else if (absG < NEUTRAL_ZONE && absB < NEUTRAL_ZONE) {
-                    orientationFired = false;
+                if ((absG > TILT_THRESHOLD || absB > TILT_THRESHOLD) &&
+                    now - lastOrientationMoveAt > ORIENTATION_INTERVAL) {
+                    lastOrientationMoveAt = now;
+                    app.ports.onGesture.send(directionFromOrientation());
                 }
             }
 
@@ -141,39 +133,16 @@
                 if (currentMode !== "both") return;
                 var a = e.accelerationIncludingGravity;
                 if (!a) return;
-                var dx = a.x - lastAccel.x;
-                var dy = a.y - lastAccel.y;
+                var total =
+                    Math.abs(a.x - lastAccel.x) +
+                    Math.abs(a.y - lastAccel.y) +
+                    Math.abs(a.z - lastAccel.z);
                 lastAccel = { x: a.x, y: a.y, z: a.z };
-                var absDx = Math.abs(dx);
-                var absDy = Math.abs(dy);
                 var now = Date.now();
-
-                if (now > shakeLockExpiry) { shakeLockDir = null; shakeAccum = 0; }
-
-                if (!shakeLockDir) {
-                    var dom = absDx >= absDy
-                        ? absDx / (absDy || 0.1)
-                        : absDy / (absDx || 0.1);
-                    if ((absDx > SHAKE_LOCK_THRESHOLD || absDy > SHAKE_LOCK_THRESHOLD) && dom >= SHAKE_DOMINANT_RATIO) {
-                        shakeLockDir = absDx >= absDy
-                            ? (dx > 0 ? "right" : "left")
-                            : (dy > 0 ? "up" : "down");
-                        shakeLockExpiry = now + SHAKE_LOCK_WINDOW;
-                        shakeAccum = 0;
-                    }
-                }
-
-                if (shakeLockDir) {
-                    shakeAccum += (shakeLockDir === "left" || shakeLockDir === "right") ? absDx : absDy;
-                    if (shakeAccum >= SHAKE_FIRE_THRESHOLD && now - lastShakeAt > SHAKE_COOLDOWN) {
-                        // Use orientation to confirm/override direction
-                        var orientDir = directionFromOrientation();
-                        var dir = orientDir || shakeLockDir;
-                        lastShakeAt = now;
-                        app.ports.onGesture.send(dir);
-                        shakeLockDir = null;
-                        shakeAccum = 0;
-                    }
+                if (total > SHAKE_THRESHOLD && now - lastShakeAt > SHAKE_COOLDOWN) {
+                    lastShakeAt = now;
+                    // Direction comes entirely from current orientation, not from the shake itself
+                    app.ports.onGesture.send(directionFromOrientation());
                 }
             }
 
