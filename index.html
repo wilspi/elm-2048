@@ -5,29 +5,29 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
         <!-- Primary -->
-        <title>2048 - Game by wilspi</title>
+        <title>Play 2048 Puzzle Game Online</title>
         <meta
             name="description"
-            content="Join the numbers and get to the 2048 tile! A clean, fast implementation of the classic 2048 puzzle game."
+            content="Join the numbers and get to the 2048 tile! Play the classic 2048 puzzle game."
         />
         <meta name="author" content="wilspi" />
         <meta
             name="keywords"
             content="2048, puzzle game, number game, elm, wilspi"
         />
-        <link rel="canonical" href="https://wilspi.com/elm-2048/" />
+        <link rel="canonical" href="https://2048.wilspi.com/" />
 
         <!-- Open Graph (WhatsApp, Facebook, LinkedIn, iMessage) -->
         <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://dev.wilspi.com/elm-2048/" />
-        <meta property="og:title" content="2048 - Game by wilspi" />
+        <meta property="og:url" content="https://2048.wilspi.com/" />
+        <meta property="og:title" content="Play 2048 Puzzle Game Online" />
         <meta
             property="og:description"
-            content="Join the numbers and get to the 2048 tile! A clean, fast implementation of the classic 2048 puzzle game."
+            content="Join the numbers and get to the 2048 tile!"
         />
         <meta
             property="og:image"
-            content="https://assets.wilspi.com/elm-2048-preview.png"
+            content="https://assets.wilspi.com/2048/2048-preview.png"
         />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
@@ -40,11 +40,11 @@
         <meta name="twitter:title" content="2048 - Game by wilspi" />
         <meta
             name="twitter:description"
-            content="Join the numbers and get to the 2048 tile! A clean, fast implementation of the classic 2048 puzzle game."
+            content="Join the numbers and get to the 2048 tile!"
         />
         <meta
             name="twitter:image"
-            content="https://assets.wilspi.com/elm-2048-preview.png"
+            content="https://assets.wilspi.com/2048/2048-preview.png"
         />
 
         <!-- Structured data -->
@@ -54,7 +54,7 @@
                 "@type": "VideoGame",
                 "name": "2048",
                 "description": "Join the numbers and get to the 2048 tile!",
-                "url": "https://dev.wilspi.com/elm-2048/",
+                "url": "https://2048.wilspi.com/",
                 "author": {
                     "@type": "Person",
                     "name": "wilspi",
@@ -66,6 +66,13 @@
                 "operatingSystem": "Any"
             }
         </script>
+
+        <!-- Favicons -->
+        <link rel="icon" type="image/x-icon" href="https://assets.wilspi.com/2048/favicon.ico" />
+        <link rel="icon" type="image/png" sizes="16x16" href="https://assets.wilspi.com/2048/favicon-16x16.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="https://assets.wilspi.com/2048/favicon-32x32.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="https://assets.wilspi.com/2048/apple-touch-icon.png" />
+        <link rel="manifest" href="./site.webmanifest" />
 
         <link rel="stylesheet" href="./src/styles/main.css" />
         <script src="./index.js"></script>
@@ -89,10 +96,10 @@
             // Shared state
             var currentMode = "off";
             var currentGamma = 0; // left/right tilt (-90 to 90)
-            var currentBeta = 0;  // upright = ~90, normalize to 0
+            var currentBeta = 0; // upright = ~90, normalize to 0
 
             // Orientation-only state
-            var TILT_THRESHOLD = 25;      // degrees to trigger
+            var TILT_THRESHOLD = 25; // degrees to trigger
             var ORIENTATION_INTERVAL = 400; // ms between repeated moves while tilted
             var lastOrientationMoveAt = 0;
 
@@ -104,8 +111,8 @@
 
             // Read direction purely from current tilt angles
             function directionFromOrientation() {
-                var g = currentGamma;           // left(-) / right(+)
-                var b = currentBeta - 90;       // upright=0, forward(+) / back(-)
+                var g = currentGamma; // left(-) / right(+)
+                var b = currentBeta - 90; // upright=0, forward(+) / back(-)
                 if (Math.abs(g) >= Math.abs(b)) {
                     return g > 0 ? "right" : "left";
                 } else {
@@ -115,15 +122,17 @@
 
             function handleOrientation(e) {
                 currentGamma = e.gamma || 0;
-                currentBeta  = e.beta  || 0;
+                currentBeta = e.beta || 0;
                 if (currentMode !== "orientation") return;
 
                 var absG = Math.abs(currentGamma);
                 var absB = Math.abs(currentBeta - 90);
                 var now = Date.now();
 
-                if ((absG > TILT_THRESHOLD || absB > TILT_THRESHOLD) &&
-                    now - lastOrientationMoveAt > ORIENTATION_INTERVAL) {
+                if (
+                    (absG > TILT_THRESHOLD || absB > TILT_THRESHOLD) &&
+                    now - lastOrientationMoveAt > ORIENTATION_INTERVAL
+                ) {
                     lastOrientationMoveAt = now;
                     app.ports.onGesture.send(directionFromOrientation());
                 }
@@ -139,7 +148,10 @@
                     Math.abs(a.z - lastAccel.z);
                 lastAccel = { x: a.x, y: a.y, z: a.z };
                 var now = Date.now();
-                if (total > SHAKE_THRESHOLD && now - lastShakeAt > SHAKE_COOLDOWN) {
+                if (
+                    total > SHAKE_THRESHOLD &&
+                    now - lastShakeAt > SHAKE_COOLDOWN
+                ) {
                     lastShakeAt = now;
                     // Direction comes entirely from current orientation, not from the shake itself
                     app.ports.onGesture.send(directionFromOrientation());
@@ -161,7 +173,11 @@
                         DeviceOrientationEvent.requestPermission(),
                     ])
                         .then(function (states) {
-                            if (states.every(function (s) { return s === "granted"; })) {
+                            if (
+                                states.every(function (s) {
+                                    return s === "granted";
+                                })
+                            ) {
                                 setupGestures();
                             }
                         })
@@ -184,10 +200,14 @@
                 if (!btn) return;
                 var score = btn.getAttribute("data-score") || "0";
                 var best = btn.getAttribute("data-best") || "0";
-                var url = "https://dev.wilspi.com/elm-2048/";
+                var url = "https://2048.wilspi.com/";
                 var text =
                     "🎮 2048\n" +
-                    "My Score: " + score + " (Best: " + best + ")\n" +
+                    "My Score: " +
+                    score +
+                    " (Best: " +
+                    best +
+                    ")\n" +
                     "Can you beat me?";
                 if (navigator.share) {
                     navigator.share({ title: "2048", text: text, url: url });
