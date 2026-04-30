@@ -69,10 +69,28 @@
         </script>
 
         <!-- Favicons -->
-        <link rel="icon" type="image/x-icon" href="https://assets.wilspi.com/2048/favicon.ico" />
-        <link rel="icon" type="image/png" sizes="16x16" href="https://assets.wilspi.com/2048/favicon-16x16.png" />
-        <link rel="icon" type="image/png" sizes="32x32" href="https://assets.wilspi.com/2048/favicon-32x32.png" />
-        <link rel="apple-touch-icon" sizes="180x180" href="https://assets.wilspi.com/2048/apple-touch-icon.png" />
+        <link
+            rel="icon"
+            type="image/x-icon"
+            href="https://assets.wilspi.com/2048/favicon.ico"
+        />
+        <link
+            rel="icon"
+            type="image/png"
+            sizes="16x16"
+            href="https://assets.wilspi.com/2048/favicon-16x16.png"
+        />
+        <link
+            rel="icon"
+            type="image/png"
+            sizes="32x32"
+            href="https://assets.wilspi.com/2048/favicon-32x32.png"
+        />
+        <link
+            rel="apple-touch-icon"
+            sizes="180x180"
+            href="https://assets.wilspi.com/2048/apple-touch-icon.png"
+        />
         <link rel="manifest" href="./site.webmanifest" />
 
         <link rel="stylesheet" href="./src/styles/main.css" />
@@ -203,13 +221,12 @@
                 var best = btn.getAttribute("data-best") || "0";
                 var url = "https://2048.wilspi.com/";
                 var text =
-                    "🎮 2048\n" +
-                    "My Score: " +
+                    "🎮 My Score: " +
                     score +
                     " (Best: " +
                     best +
                     ")\n" +
-                    "Can you beat me?";
+                    "Can you beat me?\n\n";
                 if (navigator.share) {
                     navigator.share({ title: "2048", text: text, url: url });
                 } else {
